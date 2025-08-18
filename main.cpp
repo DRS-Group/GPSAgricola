@@ -1,27 +1,13 @@
-#include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QFont>
+#include <QQmlContext>
+#include "source/application.h"
 
 int main(int argc, char *argv[])
 {
-    qputenv("QT_IM_MODULE", QByteArray("qtvirtualkeyboard"));
+    Application app(argc, argv);
 
-    QGuiApplication app(argc, argv);
-
-    QFont font("Arial");
-    app.setFont(font);
-
-    QQmlApplicationEngine engine;
-    QObject::connect(
-        &engine,
-        &QQmlApplicationEngine::objectCreationFailed,
-        &app,
-        []() { QCoreApplication::exit(-1); },
-        Qt::QueuedConnection);
-
-    engine.addImportPath("./qml/Constants.qml");
-
-    engine.loadFromModule("GPSAgricola", "Main");
+    app.load();
 
     return app.exec();
 }

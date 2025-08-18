@@ -15,6 +15,10 @@ ApplicationWindow {
         initialItem: "qml/views/HomeView.qml"
         anchors.fill: parent
 
+        onCurrentItemChanged: {
+            application.onStackViewItemChanged(currentItem);
+        }
+
         pushEnter: Transition {
             PropertyAnimation {
                 property: "y"

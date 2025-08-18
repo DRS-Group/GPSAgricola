@@ -7,7 +7,33 @@ import QtQuick3D
 import QtQuick3D.Helpers
 import "../../3DModels"
 
+
 Page {
+    id: fieldViewPage
+    objectName: "FieldView"
+
+    property var vehicles: []
+
+    function myQmlFunction(message) {
+        // createVehicle();
+    }
+
+    function createVehicle(){
+        const newTractor = tractorComponent.createObject(scene, {
+                                                             "x": 0,
+                                                             "y": 0,
+                                                             "z": 0
+                                                         });
+
+        vehicles.push(newTractor);
+        console.log("vehicle created")
+    }
+
+    Component{
+        id: tractorComponent
+        Tractor_A{}
+    }
+
     property real targetYaw: 0
     property real targetPitch: 25
     property real targetRadius: 2000
@@ -26,7 +52,31 @@ Page {
     }
 
     Timer {
-        interval: 16
+        id: moveVehiclesTimer
+        interval: 10
+        running: true
+        repeat: true
+        onTriggered: {
+            for(let vehicle of vehicles){
+                vehicle.z -= 10;
+            }
+        }
+    }
+
+    Timer{
+        id: vehicleSpawnerTimer
+        interval: 500
+        running: true
+        repeat: true
+        onTriggered: {
+            createVehicle()
+        }
+
+    }
+
+    Timer {
+        id: cameraMovementTimer
+        interval: 40
         running: true
         repeat: true
         onTriggered: {
@@ -40,7 +90,6 @@ Page {
             updateCameraPosition()
         }
     }
-
 
     function updateCameraPosition() {
         var yawRad = cameraYaw * Math.PI / 180
@@ -60,9 +109,7 @@ Page {
         sceneCamera.lookAt(center)
     }
 
-
     title: "FieldView"
-
 
     Button {
         anchors.right: parent.right
@@ -109,16 +156,22 @@ Page {
                     id: sceneEnvironment
                     colorAdjustmentsEnabled: true
                     backgroundMode: SceneEnvironment.SkyBox
-                    antialiasingQuality: SceneEnvironment.High
-                    antialiasingMode: SceneEnvironment.MSAA
+                    // antialiasingQuality: SceneEnvironment.High
+                    // antialiasingMode: SceneEnvironment.MSAA
 
                     lightProbe: Texture{
                         source: "qrc:/assets/day-skybox.hdr"
                     }
+
+                    // InfiniteGrid {
+                    //     gridInterval: 500
+                    //     gridAxes: false
+                    // }
                 }
 
                 Node {
                     id: scene
+                    objectName: "teste"
                     DirectionalLight {
                         id: directionalLight
                         visible: true
@@ -140,21 +193,50 @@ Page {
                     }
                 }
 
-                Node{
-                    id: node
-                    Tractor_A{
-                    }
+                Model {
+                    id: tilePlane
 
-                    Model {
-                        id: groundPlane
-                        source: "#Rectangle"
-                        eulerRotation: Qt.vector3d(-90,-1,0)
-                        scale: Qt.vector3d(10000, 10000, 1)
-                        materials: whiteMaterial
+                    source: "#Rectangle"
+
+                    scale: Qt.vector3d(10.24, 10.24, 10.24)
+                    position: Qt.vector3d((0 * 10.24 + 10.24/2) * 100, 5, (0 * 10.24 + 10.24/2)*100)
+                    eulerRotation: Qt.vector3d(-90, 0, 0)
+                    materials: PrincipledMaterial {
+                        opacity: 1
+                        alphaMode: PrincipledMaterial.Blend
+                        lighting: PrincipledMaterial.NoLighting
+                        blendMode: PrincipledMaterial.SourceOver
+                        roughness: 1
+                        baseColorMap: Texture {
+                            textureData: painterService.getTileTexture(0, 0, tilePlane)
+                        }
                     }
                 }
 
+                Model {
+                    id: groundPlane
+                    source: "#Rectangle"
+                    scale: Qt.vector3d(1000, 1000, 1000)
+                    eulerRotation: Qt.vector3d(-90, 0, 0)
+                    position: Qt.vector3d(0, -1, 0)
+                    materials: PrincipledMaterial{
+                        id: materialTeste
+                        baseColorMap: Texture{
+                            id: texturaTeste
+                            source: "qrc:/assets/ground-grid.jpg"
+                            magFilter: Texture.Nearest
+                            tilingModeHorizontal: Texture.Repeat
+                            scaleV: 25
+                            scaleU: 25
+                        }
+                        roughness: 1
+                        metalness: 0
+                    }
+                }
+
+
                 MouseArea {
+                    id: cameraMovementMouseArea
                     anchors.fill: parent
                     drag.target: null
                     property real lastX: 0
@@ -189,6 +271,7 @@ Page {
                 }
 
                 PinchArea {
+                    id: cameraMovementPinchArea
                     anchors.fill: parent
                     pinch.maximumScale: 3
                     pinch.minimumScale: 0.5
@@ -202,24 +285,23 @@ Page {
                         targetRadius = Math.min(Math.max(targetRadius / scaleDelta, 20), 5000)
                     }
 
-
                     onPinchFinished: {
                         lastScale = 1.0
                     }
                 }
 
-
                 Component.onCompleted: updateCameraPosition()
 
             }
         }
-        Rectangle{
-            color: "#00ff00"
-            border.width: 0
-            Layout.alignment: Qt.AlignLeft | Qt.AlignTop
-            width: parent.width
-            Layout.preferredHeight: 100
-        }
+        // Rectangle{
+        //     id: rectMenu
+        //     color: "#00ff00"
+        //     border.width: 0
+        //     Layout.alignment: Qt.AlignLeft | Qt.AlignTop
+        //     width: parent.width
+        //     Layout.preferredHeight: 100
+        // }
     }
 
     Item {
@@ -231,14 +313,14 @@ Page {
             baseColor: "white"
         }
     }
+
+    Component.onCompleted: {
+        updateCameraPosition()
+    }
 }
-
-
-
-
 
 /*##^##
 Designer {
-    D{i:0}D{i:7;cameraSpeed3d:16;cameraSpeed3dMultiplier:1}D{i:10;cameraSpeed3d:16;cameraSpeed3dMultiplier:1}
+    D{i:0}D{i:11;cameraSpeed3d:46;cameraSpeed3dMultiplier:1}
 }
 ##^##*/

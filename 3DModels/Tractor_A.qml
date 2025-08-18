@@ -36,8 +36,8 @@ Node {
             id: black_metal_material
             objectName: "black metal"
             baseColor: "#ff080808"
-            metalness: 0.19999998807907104
-            roughness: 0.6363636255264282
+            metalness: 0.2
+            roughness: 0.6
             cullMode: PrincipledMaterial.NoCulling
             alphaMode: PrincipledMaterial.Opaque
         }
@@ -62,8 +62,8 @@ Node {
             id: wheel_material
             objectName: "wheel"
             baseColor: "#ffb3cc04"
-            metalness: 0.23181821405887604
-            roughness: 0.20454543828964233
+            metalness: 0.25
+            roughness: 0.20
             cullMode: PrincipledMaterial.NoCulling
             alphaMode: PrincipledMaterial.Opaque
         }
@@ -72,7 +72,7 @@ Node {
             id: front_light_material
             objectName: "front light"
             baseColor: "#ffcccc5b"
-            roughness: 0.47727271914482117
+            roughness: 0.40
             emissiveFactor: Qt.vector3d(1, 0.999788, 0.445893)
             cullMode: PrincipledMaterial.NoCulling
             alphaMode: PrincipledMaterial.Opaque
@@ -110,8 +110,8 @@ Node {
             id: plane_001_mesh
             objectName: "black plastic"
             baseColor: "#ff030303"
-            metalness: 0.13636362552642822
-            roughness: 0.7909091114997864
+            metalness: 0.10
+            roughness: 0.8
             cullMode: PrincipledMaterial.NoCulling
             alphaMode: PrincipledMaterial.Opaque
         }
@@ -120,6 +120,7 @@ Node {
             id: mirror_material
             objectName: "mirror"
             metalness: 1
+            roughness: 0
             cullMode: PrincipledMaterial.NoCulling
             alphaMode: PrincipledMaterial.Opaque
         }

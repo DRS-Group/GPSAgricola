@@ -8,7 +8,8 @@ import QtMultimedia
 
 Page {
     id: page
-    title: "HomeScreen"
+    title: "HomeView"
+    objectName: "HomeView"
     Rectangle {
         anchors.fill: parent
         color: "#262626" // ou qualquer cor de fundo desejada
