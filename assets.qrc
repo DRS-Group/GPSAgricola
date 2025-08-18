@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>assets/background-video.mp4</file>
+        <file>assets/day-skybox.hdr</file>
+        <file>assets/fields.jpg</file>
+        <file>assets/jobs.jpg</file>
+        <file>assets/machines.jpg</file>
+    </qresource>
+</RCC>

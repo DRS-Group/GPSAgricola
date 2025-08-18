@@ -8,22 +8,35 @@ find_package(Qt6 REQUIRED COMPONENTS Quick)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
+set(CMAKE_AUTORCC ON)
+
 qt_add_executable(appGPSAgricola
     main.cpp
+    assets.qrc
 )
 
 qt_add_qml_module(appGPSAgricola
     URI GPSAgricola
     VERSION 1.0
+    RESOURCES
+    assets.qrc
     QML_FILES
-        Main.qml
+    Main.qml
+    qml/views/HomeView.qml
+    qml/views/FieldView.qml
+    qml/views/MachinesView.qml
+    qml/components/buttons/MenuButton.qml
+    RESOURCES
+QML_FILES
+RESOURCES 3DModels/meshes/_MergedNode_0_mesh.mesh 3DModels/meshes/plane_001_mesh.mesh
+QML_FILES 3DModels/Arrow.qml 3DModels/Tractor_A.qml
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.
 set_target_properties(appGPSAgricola PROPERTIES
-#    MACOSX_BUNDLE_GUI_IDENTIFIER com.example.appGPSAgricola
+    #    MACOSX_BUNDLE_GUI_IDENTIFIER com.example.appGPSAgricola
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE

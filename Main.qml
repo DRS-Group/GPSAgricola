@@ -1,38 +1,54 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.VirtualKeyboard
+import QtQuick3D.Helpers
 
-Window {
-    id: window
-    width: 640
-    height: 480
+ApplicationWindow {
     visible: true
-    title: qsTr("Hello World")
+    width: 800 * 2
+    height: 480 * 2
+    title: "GPS Agricola"
+    color: "#262626"
 
-    InputPanel {
-        id: inputPanel
-        z: 99
-        x: 0
-        y: window.height
-        width: window.width
+    StackView {
+        id: stackView
+        initialItem: "qml/views/HomeView.qml"
+        anchors.fill: parent
 
-        states: State {
-            name: "visible"
-            when: inputPanel.active
-            PropertyChanges {
-                target: inputPanel
-                y: window.height - inputPanel.height
+        pushEnter: Transition {
+            PropertyAnimation {
+                property: "y"
+                from: stackView.height
+                to: 0
+                duration: 200
+                easing.type: Easing.OutQuad
             }
         }
-        transitions: Transition {
-            from: ""
-            to: "visible"
-            reversible: true
-            ParallelAnimation {
-                NumberAnimation {
-                    properties: "y"
-                    duration: 250
-                    easing.type: Easing.InOutQuad
-                }
+        pushExit: Transition {
+            PropertyAnimation {
+                property: "y"
+                from: 0
+                to: -stackView.height
+                duration: 200
+                easing.type: Easing.OutQuad
+            }
+        }
+        popEnter: Transition {
+            PropertyAnimation {
+                property: "y"
+                from: -stackView.height
+                to: 0
+                duration: 200
+                easing.type: Easing.OutQuad
+            }
+        }
+        popExit: Transition {
+            PropertyAnimation {
+                property: "y"
+                from: 0
+                to: stackView.height
+                duration: 200
+                easing.type: Easing.OutQuad
             }
         }
     }
