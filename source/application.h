@@ -6,45 +6,51 @@
 #include <QQuickItem>
 
 #include "BaseView.h"
-#include "views/HomeView.h"
 #include "views/FieldView.h"
+#include "views/FieldsView.h"
+#include "views/HomeView.h"
 
-class Application : public QGuiApplication
-{
+class Application : public QGuiApplication {
     Q_OBJECT
 public:
     explicit Application(int &argc, char **argv);
     ~Application();
 
-    static Application* getInstance();
+    static Application *getInstance();
 
     void load();
-    QQmlApplicationEngine* getEngine() const;
+    QQmlApplicationEngine *getEngine() const;
 
     QString currentPageTitle = "";
-    BaseView* currentView = nullptr;
+    BaseView *currentView = nullptr;
 
-    Q_INVOKABLE void onStackViewItemChanged(QQuickItem* currentItem)
-    {
+    Q_INVOKABLE void onStackViewItemChanged(QQuickItem *currentItem) {
         if (currentItem) {
             // Get the objectName of the current item
             QString itemName = currentItem->property("title").toString();
-            qDebug() << "StackView item has changed. New item name:" << itemName;
 
             this->currentPageTitle = itemName;
 
-            if(currentView) free(currentView);
+            if (this->currentView) {
+                delete this->currentView;
+                this->currentView = nullptr;
+            }
 
             if (this->currentPageTitle == "HomeView")
                 this->currentView = new HomeView(this);
             else if (this->currentPageTitle == "FieldView")
                 this->currentView = new FieldView(this);
+            else if (this->currentPageTitle == "FieldsView")
+                this->currentView = new FieldsView(this);
+
+            if(this->currentView)
+                this->currentView->onQmlReady();
         }
     }
 
 private:
-    static Application* m_instance;
-    QQmlApplicationEngine* engine;
+    static Application *m_instance;
+    QQmlApplicationEngine *engine;
 
 signals:
     // Add your custom signals here

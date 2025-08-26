@@ -5,6 +5,9 @@
         <file>assets/fields.jpg</file>
         <file>assets/jobs.jpg</file>
         <file>assets/machines.jpg</file>
-        <file>assets/ground-grid.jpg</file>
+        <file>assets/icons/thin-chevron-left.svg</file>
+        <file>assets/icons/arrow-left.svg</file>
+        <file>assets/icons/thin-chevron-right.svg</file>
+        <file>assets/icons/thin-chevron-right-black.svg</file>
     </qresource>
 </RCC>

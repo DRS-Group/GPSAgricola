@@ -8,7 +8,6 @@ find_package(Qt6 REQUIRED COMPONENTS
     Quick
     Core
     Quick3D
-    Quick3DHelpers
     Positioning
 )
 
@@ -41,11 +40,26 @@ qt_add_qml_module(appGPSAgricola
         source/views/FieldView.h source/views/FieldView.cpp
         SOURCES source/BaseService.h source/BaseService.cpp
         SOURCES source/services/GeolocationService.h source/services/GeolocationService.cpp
-        SOURCES source/types/VehicleData.h
-        SOURCES source/types/Tile.h
+        SOURCES source/entities/VehicleData.h
+        SOURCES source/entities/Tile.h
         SOURCES source/services/PainterService.h source/services/PainterService.cpp
         SOURCES
         SOURCES source/ServicesManager.h source/ServicesManager.cpp
+        RESOURCES assets/shaders/tileVertexShader.vert
+        RESOURCES
+        RESOURCES assets/shaders/tileFragmentShader.frag
+        SOURCES source/services/FieldService.h source/services/FieldService.cpp
+        SOURCES source/entities/jobs/BaseJob.h source/entities/jobs/BaseJob.cpp
+        SOURCES source/entities/Field.h
+        SOURCES source/entities/jobs/SprayJob.h source/entities/jobs/SprayJob.cpp
+        SOURCES source/services/JobsService.h source/services/JobsService.cpp
+        SOURCES source/entities/JobTypes.h
+        SOURCES source/entities/TileMap.h
+        QML_FILES qml/views/fields/FieldsView.qml
+        QML_FILES qml/components/TopBar.qml
+        QML_FILES qml/views/fields/components/FieldItem.qml
+        SOURCES source/views/FieldsView.h source/views/FieldsView.cpp
+        SOURCES source/models/FieldsListModel.h source/models/FieldsListModel.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -64,7 +78,6 @@ target_link_libraries(appGPSAgricola
     Qt6::Quick
     Qt6::Core
     Qt6::Quick3D
-    Qt6::Quick3DHelpers
     Qt6::Positioning
 )
 

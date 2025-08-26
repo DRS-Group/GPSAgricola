@@ -1,14 +1,13 @@
 #ifndef VEHICLEDATA_H
 #define VEHICLEDATA_H
 
-#include <QGeoLocation>
+#include <QGeoCoordinate>
 #include <QVector3D>
 
 struct VehicleData{
-    QGeoLocation coordinate;
+    QGeoCoordinate coordinate;
     QVector3D rotation;
     double speed;
-
 };
 
 #endif // VEHICLEDATA_H

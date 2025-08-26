@@ -1,14 +1,11 @@
 #include "application.h"
-#include <QDebug>
+#include "ServicesManager.h"
 #include <QFont>
 #include <QQmlContext>
-#include "ServicesManager.h"
 
-Application* Application::m_instance = nullptr;
+Application *Application::m_instance = nullptr;
 
-Application::Application(int &argc, char **argv)
-    : QGuiApplication(argc, argv)
-{
+Application::Application(int &argc, char **argv) : QGuiApplication(argc, argv) {
     if (m_instance != nullptr) {
         qWarning("An instance of Application already exists.");
         // You might want to handle this more gracefully, e.g., by exiting.
@@ -21,32 +18,28 @@ Application::Application(int &argc, char **argv)
     this->engine = new QQmlApplicationEngine(this);
 }
 
-Application::~Application()
-{
+Application::~Application() {
     m_instance = nullptr; // Clear the instance pointer on destruction
 }
 
-Application* Application::getInstance(){
-    return m_instance;
-}
+Application *Application::getInstance() { return m_instance; }
 
-void Application::load(){
+void Application::load() {
     QObject::connect(
-        engine,
-        &QQmlApplicationEngine::objectCreationFailed,
-        this,
-        []() { QCoreApplication::exit(-1); },
-        Qt::QueuedConnection);
+        engine, &QQmlApplicationEngine::objectCreationFailed, this,
+        []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
 
-    ServicesManager* servicesManager = ServicesManager::getInstance();
-    PainterService* painterService = servicesManager->painterService;
+    ServicesManager *servicesManager = ServicesManager::getInstance();
+    PainterService *painterService = servicesManager->painterService;
+    GeolocationService *geolocationService = servicesManager->geolocationService;
+    JobsService *jobsService = servicesManager->jobsService;
 
     engine->rootContext()->setContextProperty("application", this);
     engine->rootContext()->setContextProperty("painterService", painterService);
-
+    engine->rootContext()->setContextProperty("geolocationService",
+                                              geolocationService);
+    engine->rootContext()->setContextProperty("jobsService", jobsService);
     engine->loadFromModule("GPSAgricola", "Main");
 }
 
-QQmlApplicationEngine* Application::getEngine() const{
-    return this->engine;
-}
+QQmlApplicationEngine *Application::getEngine() const { return this->engine; }

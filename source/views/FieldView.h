@@ -2,17 +2,18 @@
 #define FIELDVIEW_H
 
 #include "../BaseView.h"
-#include <QDebug>
+#include "QQuick3DTextureData"
 
-class FieldView : public BaseView
-{
+class FieldView : public BaseView {
     Q_OBJECT
 public:
     explicit FieldView(QObject *parent = nullptr);
+    ~FieldView();
 
-    void onQmlReady() override{
-        qDebug() << "FieldView qml loaded";
-    }
+    void onQmlReady() override {}
+
+    Q_INVOKABLE QQuick3DTextureData *getTileFieldTexture(int tileX, int tileY,
+                                                         QQuick3DObject *parent);
 };
 
 #endif // FIELDVIEW_H

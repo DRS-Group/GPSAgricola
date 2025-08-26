@@ -74,8 +74,9 @@ Page {
             id: menuButton1
             imageSource: "qrc:/assets/fields.jpg"
             onClicked: {
-                console.log('fields')
+                stackView.push("fields/FieldsView.qml")
             }
+
             text: "Campos"
         }
 

@@ -1,13 +1,12 @@
-
 <RCC>
-<qresource>
-<file>qtquickcontrols2.conf</file>
-<file>UntitledProject.qmlproject</file>
-<file>UntitledProject/Constants.qml</file>
-<file>UntitledProject/EventListModel.qml</file>
-<file>UntitledProject/EventListSimulator.qml</file>
-<file>UntitledProject/qmldir</file>
-<file>UntitledProjectContent/App.qml</file>
-<file>UntitledProjectContent/Screen01.ui.qml</file>
-</qresource>
+    <qresource prefix="/">
+        <file>qtquickcontrols2.conf</file>
+        <file>UntitledProject.qmlproject</file>
+        <file>UntitledProject/Constants.qml</file>
+        <file>UntitledProject/EventListModel.qml</file>
+        <file>UntitledProject/EventListSimulator.qml</file>
+        <file>UntitledProject/qmldir</file>
+        <file>UntitledProjectContent/App.qml</file>
+        <file>UntitledProjectContent/Screen01.ui.qml</file>
+    </qresource>
 </RCC>

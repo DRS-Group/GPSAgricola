@@ -68,7 +68,6 @@ Item {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
             onClicked: {
-                console.log("clicked")
                 root.clicked()
             }
         }

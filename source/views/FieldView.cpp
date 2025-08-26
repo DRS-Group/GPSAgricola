@@ -1,21 +1,35 @@
-#include "fieldview.h"
+#include "FieldView.h"
 #include "../application.h"
+#include "source/ServicesManager.h"
 
-#include <QTimer>
 #include <QQuickItem>
+#include <QTimer>
 #include <QtConcurrent/QtConcurrentRun>
+#include <qqmlcontext.h>
 
+FieldView::FieldView(QObject *parent) : BaseView(parent) {
+    Application::getInstance()->getEngine()->rootContext()->setContextProperty("fieldViewCpp", this);
 
-FieldView::FieldView(QObject *parent)
-    : BaseView(parent)
-{
-    QObject *rootObject = Application::getInstance()->getEngine()->rootObjects().first();
+    ServicesManager::getInstance()->geolocationService->SetSpeed(10);
+    ServicesManager::getInstance()->geolocationService->SetRotationSpeed(10);
+
+    QObject *rootObject =
+        Application::getInstance()->getEngine()->rootObjects().first();
     if (rootObject) {
-        QObject *fieldViewQml = rootObject->findChild<QObject*>("FieldView");
+        QObject *fieldViewQml = rootObject->findChild<QObject *>("FieldView");
         if (fieldViewQml) {
-            QMetaObject::invokeMethod(fieldViewQml, "myQmlFunction",
-                                      Qt::QueuedConnection, // Use queued connection for thread safety
-                                      Q_ARG(QVariant, "Hello from C++!"));
+            QMetaObject::invokeMethod(fieldViewQml, "createTiles");
         }
     }
+}
+
+FieldView::~FieldView(){
+    Application::getInstance()->getEngine()->rootContext()->setContextProperty("fieldViewCpp", nullptr);
+}
+
+QQuick3DTextureData *FieldView::getTileFieldTexture(int tileX, int tileY,
+                                                    QQuick3DObject *parent) {
+    JobsService *jobsService = JobsService::getInstance();
+    BaseJob *currentJob = jobsService->getCurrentJob();
+    return currentJob->getTileFieldTexture(tileX, tileY, parent);
 }
