@@ -9,5 +9,13 @@
         <file>assets/icons/arrow-left.svg</file>
         <file>assets/icons/thin-chevron-right.svg</file>
         <file>assets/icons/thin-chevron-right-black.svg</file>
+        <file>assets/icons/check.svg</file>
+        <file>assets/icons/plus.svg</file>
+        <file>assets/icons/tray-arrow-down-black.svg</file>
+        <file>assets/icons/backspace-black.svg</file>
+        <file>assets/icons/caps-black.svg</file>
+        <file>assets/icons/keyboard-return-black.svg</file>
+        <file>assets/icons/shift-normal-black.svg</file>
+        <file>assets/icons/shift-shifted-black.svg</file>
     </qresource>
 </RCC>

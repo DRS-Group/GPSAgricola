@@ -6,6 +6,7 @@
 #include <QQuickItem>
 
 #include "BaseView.h"
+// #include "source/views/AddFieldView.h"
 #include "views/FieldView.h"
 #include "views/FieldsView.h"
 #include "views/HomeView.h"
@@ -42,6 +43,8 @@ public:
                 this->currentView = new FieldView(this);
             else if (this->currentPageTitle == "FieldsView")
                 this->currentView = new FieldsView(this);
+            // else if (this->currentPageTitle == "AddFieldView")
+            //     this->currentView = new AddFieldView(this);
 
             if(this->currentView)
                 this->currentView->onQmlReady();

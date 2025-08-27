@@ -60,6 +60,10 @@ qt_add_qml_module(appGPSAgricola
         QML_FILES qml/views/fields/components/FieldItem.qml
         SOURCES source/views/FieldsView.h source/views/FieldsView.cpp
         SOURCES source/models/FieldsListModel.h source/models/FieldsListModel.cpp
+        QML_FILES qml/views/addField/AddFieldView.qml
+        SOURCES source/views/AddFieldView.h source/views/AddFieldView.cpp
+        SOURCES source/objects/FieldObject.h
+        QML_FILES qml/components/TextInputModal.qml
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

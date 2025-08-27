@@ -27,7 +27,8 @@ public:
     bool saveField(const Field& field);
     std::vector<Field> getAllFields() const;
     QImage renderFieldPolygon(const Field &field, int width, int height, int border = 0) const;
-
+    QUrl renderFieldAsUrl(const Field &field, int width, int height,
+                          int border) const;
 
 private:
     static FieldService* instance;

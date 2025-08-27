@@ -20,8 +20,8 @@ ApplicationWindow {
 
         pushEnter: Transition {
             PropertyAnimation {
-                property: "y"
-                from: stackView.height
+                property: "x"
+                from: stackView.width
                 to: 0
                 duration: 200
                 easing.type: Easing.OutQuad
@@ -29,17 +29,17 @@ ApplicationWindow {
         }
         pushExit: Transition {
             PropertyAnimation {
-                property: "y"
+                property: "x"
                 from: 0
-                to: -stackView.height
+                to: -stackView.width
                 duration: 200
                 easing.type: Easing.OutQuad
             }
         }
         popEnter: Transition {
             PropertyAnimation {
-                property: "y"
-                from: -stackView.height
+                property: "x"
+                from: -stackView.width
                 to: 0
                 duration: 200
                 easing.type: Easing.OutQuad
@@ -47,9 +47,9 @@ ApplicationWindow {
         }
         popExit: Transition {
             PropertyAnimation {
-                property: "y"
+                property: "x"
                 from: 0
-                to: stackView.height
+                to: stackView.width
                 duration: 200
                 easing.type: Easing.OutQuad
             }

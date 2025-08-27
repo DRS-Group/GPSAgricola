@@ -1,19 +1,21 @@
 #include "FieldService.h"
+#include <QBuffer>
 #include <QDebug>
+#include <QDir>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QDir>
 #include <QPainter>
 
 FieldService *FieldService::instance = nullptr;
 
 FieldService::FieldService(QObject *parent) : BaseService(parent) {
-    std::vector<QGeoCoordinate> polygon = loadFromGeoJSON("/home/gustavodbp/casa.json");
-    Field field = Field("Talhão 3", polygon);
+    // std::vector<QGeoCoordinate> polygon =
+    //     loadFromGeoJSON("/home/gustavodbp/casa.json");
+    // Field field = Field("Talhão 3", polygon);
 
-    saveField(field);
+    // saveField(field);
 }
 
 FieldService *FieldService::getInstance() {
@@ -125,7 +127,6 @@ bool FieldService::saveField(const Field &field) {
     return true;
 };
 
-
 std::vector<Field> FieldService::getAllFields() const {
     std::vector<Field> fields;
 
@@ -172,9 +173,7 @@ std::vector<Field> FieldService::getAllFields() const {
     return fields;
 }
 
-
-bool saveImage(const QImage &image, const QString &filePath)
-{
+bool saveImage(const QImage &image, const QString &filePath) {
     if (image.isNull()) {
         qWarning() << "Cannot save an empty image!";
         return false;
@@ -188,22 +187,21 @@ bool saveImage(const QImage &image, const QString &filePath)
     return success;
 }
 
-QImage FieldService::renderFieldPolygon(const Field &field, int width, int height, int border) const
-{
+QImage FieldService::renderFieldPolygon(const Field &field, int width,
+                                        int height, int border) const {
     QImage image(width, height, QImage::Format_ARGB32);
     image.fill(Qt::transparent);
+
+    if (field.polygon.size() < 3)  // Not a polygon
+        return image;
 
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // Style: border is the border
     QPen pen(QColor(0, 100, 0, 255), border, Qt::SolidLine, Qt::RoundCap);
     QBrush brush(QColor(0, 200, 0, 255)); // semi-transparent fill
     painter.setPen(pen);
     painter.setBrush(brush);
-
-    if (field.polygon.empty())
-        return image;
 
     // Determine polygon bounding box
     double minLat = field.polygon[0].latitude();
@@ -218,15 +216,24 @@ QImage FieldService::renderFieldPolygon(const Field &field, int width, int heigh
         maxLon = qMax(maxLon, p.longitude());
     }
 
-    // Offset to ensure the pen stays inside the image
-    double penOffset = border / 2.0;
-    double usableWidth = width - 2.0 * penOffset;
-    double usableHeight = height - 2.0 * penOffset;
+    double usableWidth = width - border;
+    double usableHeight = height - border;
 
-    // Map lat/lon to pixel coordinates considering the pen offset
+    // Compute scale to preserve aspect ratio
+    double lonRange = maxLon - minLon;
+    double latRange = maxLat - minLat;
+    double scaleX = usableWidth / lonRange;
+    double scaleY = usableHeight / latRange;
+    double scale = qMin(scaleX, scaleY);
+
+    // Center offsets
+    double xOffset = (usableWidth - lonRange * scale) / 2.0 + border / 2.0;
+    double yOffset = (usableHeight - latRange * scale) / 2.0 + border / 2.0;
+
+    // Map coordinates to image
     auto mapToImage = [&](const QGeoCoordinate &c) {
-        double x = (c.longitude() - minLon) / (maxLon - minLon) * usableWidth + penOffset;
-        double y = (1.0 - (c.latitude() - minLat) / (maxLat - minLat)) * usableHeight + penOffset;
+        double x = (c.longitude() - minLon) * scale + xOffset;
+        double y = (maxLat - c.latitude()) * scale + yOffset; // flip Y
         return QPointF(x, y);
     };
 
@@ -236,8 +243,23 @@ QImage FieldService::renderFieldPolygon(const Field &field, int width, int heigh
 
     painter.drawPolygon(poly);
 
-    // Optional: save the image for debugging
+    // Optional: save for debugging
     saveImage(image, "/home/gustavodbp/field.png");
 
     return image;
+}
+
+
+QUrl FieldService::renderFieldAsUrl(const Field &field, int width, int height,
+                                    int border) const {
+    QImage img = renderFieldPolygon(field, width, height, border);
+
+    QByteArray byteArray;
+    QBuffer buffer(&byteArray);
+    buffer.open(QIODevice::WriteOnly);
+    img.save(&buffer, "png");
+    QString base64 = QString::fromUtf8(byteArray.toBase64());
+    return QString("data:image/png;base64,") + base64;
+
+    return QString();
 }

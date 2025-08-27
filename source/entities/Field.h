@@ -13,25 +13,28 @@ struct Field {
         area = calculateArea();
     }
 
-    QString name;
-    std::vector<QGeoCoordinate> polygon;
-    QGeoCoordinate origin;
-    float area;
+    QString name = "";
+    std::vector<QGeoCoordinate> polygon = {};
+    QGeoCoordinate origin = QGeoCoordinate(0, 0);
+    float area = 0;
 
-private:
+public:
     float calculateArea() {
         if (polygon.size() < 3)
             return 0.0f; // Not a polygon
 
         // Convert lat/lon to meters relative to first point
-        std::vector<std::pair<double,double>> pointsMeters;
+        std::vector<std::pair<double, double>> pointsMeters;
         double refLat = polygon[0].latitude();
         double refLon = polygon[0].longitude();
 
         for (const auto &p : polygon) {
             double latMid = (refLat + p.latitude()) / 2.0;
-            double metersPerDegLat = 111132.92 - 559.82 * cos(2 * latMid * M_PI / 180.0) + 1.175 * cos(4 * latMid * M_PI / 180.0);
-            double metersPerDegLon = 111412.84 * cos(latMid * M_PI / 180.0) - 93.5 * cos(3 * latMid * M_PI / 180.0);
+            double metersPerDegLat = 111132.92 -
+                                     559.82 * cos(2 * latMid * M_PI / 180.0) +
+                                     1.175 * cos(4 * latMid * M_PI / 180.0);
+            double metersPerDegLon = 111412.84 * cos(latMid * M_PI / 180.0) -
+                                     93.5 * cos(3 * latMid * M_PI / 180.0);
 
             double x = (p.longitude() - refLon) * metersPerDegLon;
             double y = (p.latitude() - refLat) * metersPerDegLat;
@@ -43,7 +46,8 @@ private:
         int n = pointsMeters.size();
         for (int i = 0; i < n; ++i) {
             int j = (i + 1) % n;
-            area += pointsMeters[i].first * pointsMeters[j].second - pointsMeters[j].first * pointsMeters[i].second;
+            area += pointsMeters[i].first * pointsMeters[j].second -
+                    pointsMeters[j].first * pointsMeters[i].second;
         }
 
         return std::abs(area) / 2.0; // area in m²
