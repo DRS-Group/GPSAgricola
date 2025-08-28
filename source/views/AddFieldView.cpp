@@ -11,7 +11,7 @@ AddFieldView::AddFieldView(QObject *parent) : BaseView(parent) {
     fieldService = ServicesManager::getInstance()->fieldService;
 
     field = new FieldObject(this);
-    field->setName("Campo 1");
+    // field->setName("Campo 1");
 }
 
 AddFieldView::~AddFieldView() {

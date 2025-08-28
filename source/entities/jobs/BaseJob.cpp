@@ -4,10 +4,13 @@
 BaseJob::BaseJob(const QString &name, const Field &field) {
     this->name = name;
     this->field = field;
-    this->origin.setLatitude(-21.118922992405288);
-    this->origin.setLongitude(-48.96440682249107);
+    this->origin.setLatitude(field.origin.latitude());
+    this->origin.setLongitude(field.origin.longitude());
+}
 
-    redrawField();
+BaseJob::BaseJob(){
+    this->name = "";
+    this->field = Field();
 }
 
 void BaseJob::redrawField() {

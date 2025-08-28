@@ -100,6 +100,49 @@ struct TileMap {
       return tile.fieldTexture;
   }
 
+  void serialize(QDataStream &out) const {
+      out << static_cast<quint32>(tiles.size());
+
+      for (auto &[coord, tile] : tiles) {
+          out << coord.first << coord.second;
+          out.writeRawData(
+              reinterpret_cast<const char *>(tile.sprayedPixels->data()),
+              tile.sprayedPixels->size());
+          out.writeRawData(reinterpret_cast<const char *>(tile.fieldPixels.data()),
+                           tile.fieldPixels.size());
+          out.writeRawData(
+              reinterpret_cast<const char *>(tile.plantedPixels->data()),
+              tile.plantedPixels->size());
+      }
+
+      // TileMap-level metadata
+      out << tileSize;
+      out << tileResolution;
+  }
+
+  void deserialize(QDataStream &in) {
+      quint32 count;
+      in >> count;
+
+      tiles.clear();
+
+      for (quint32 i = 0; i < count; ++i) {
+          int x, y;
+          in >> x >> y;
+          Tile tile(tileSize, tileResolution);
+          in.readRawData(reinterpret_cast<char *>(tile.sprayedPixels->data()),
+                         tile.sprayedPixels->size());
+          in.readRawData(reinterpret_cast<char *>(tile.fieldPixels.data()),
+                         tile.fieldPixels.size());
+          in.readRawData(reinterpret_cast<char *>(tile.plantedPixels->data()),
+                         tile.plantedPixels->size());
+          tiles[{x, y}] = std::move(tile);
+      }
+
+      in >> tileSize;
+      in >> tileResolution;
+  }
+
   std::unordered_map<std::pair<int, int>, Tile, TileIDHash> tiles;
   float tileSize;
   int tileResolution;

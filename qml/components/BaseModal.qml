@@ -10,8 +10,9 @@ Item {
     property string value;
     property string shiftState: "normal"
 
+    property alias contentItem: dialogContent.data
+
     signal close()
-    signal pressEnter()
 
     Component.onCompleted: {
         myTextInput.forceActiveFocus();

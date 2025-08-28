@@ -10,6 +10,7 @@
 class BaseJob {
 public:
     BaseJob(const QString &name, const Field &field);
+    BaseJob();
     virtual ~BaseJob() = default;
 
     virtual JobType type() const = 0;
@@ -21,12 +22,12 @@ public:
     QString name;
     QGeoCoordinate origin;
     Field field;
+    QDateTime creationDateTime;
 
     void redrawField();
     QQuick3DTextureData *getTileFieldTexture(int tileX, int tileY,
                                              QQuick3DObject *parent);
 
-protected:
     TileMap tiles;
 };
 

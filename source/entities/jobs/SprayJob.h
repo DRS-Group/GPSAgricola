@@ -6,6 +6,7 @@
 class SprayJob : public BaseJob {
 public:
     SprayJob(const QString& name, const Field& field);
+    SprayJob();
 
     JobType type() const override { return JobType::Spray; }
     void serialize(QDataStream &out) const override;

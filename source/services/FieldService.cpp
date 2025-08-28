@@ -173,6 +173,18 @@ std::vector<Field> FieldService::getAllFields() const {
     return fields;
 }
 
+Field FieldService::getFieldByName(const QString &name) const {
+    auto fields = getAllFields();
+
+    for (const auto &field : fields) {
+        if (field.name == name) {
+            return field;
+        }
+    };
+
+    return Field();
+}
+
 bool saveImage(const QImage &image, const QString &filePath) {
     if (image.isNull()) {
         qWarning() << "Cannot save an empty image!";
@@ -192,7 +204,7 @@ QImage FieldService::renderFieldPolygon(const Field &field, int width,
     QImage image(width, height, QImage::Format_ARGB32);
     image.fill(Qt::transparent);
 
-    if (field.polygon.size() < 3)  // Not a polygon
+    if (field.polygon.size() < 3) // Not a polygon
         return image;
 
     QPainter painter(&image);
@@ -248,7 +260,6 @@ QImage FieldService::renderFieldPolygon(const Field &field, int width,
 
     return image;
 }
-
 
 QUrl FieldService::renderFieldAsUrl(const Field &field, int width, int height,
                                     int border) const {

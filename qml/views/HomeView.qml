@@ -65,7 +65,7 @@ Page {
             id: menuButton
             imageSource: "qrc:/assets/jobs.jpg"
             onClicked: {
-                stackView.push("FieldView.qml")
+                stackView.push("jobs/JobsView.qml")
             }
             text: "Trabalhos"
         }

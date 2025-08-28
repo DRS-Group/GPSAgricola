@@ -19,6 +19,7 @@ public:
     // Set the internal Field struct
     void setField(const Field& f) {
         m_field = f;
+        recalcField();
         emit nameChanged();
         emit areaChanged();
         emit originChanged();
@@ -51,8 +52,8 @@ public:
 
     // Expose FieldService rendering
     Q_INVOKABLE QUrl renderFieldAsUrl(int width, int height, int border = 0) const {
-        FieldService service;
-        return service.renderFieldAsUrl(m_field, width, height, border).toString();
+        FieldService* service = FieldService::getInstance();
+        return service->renderFieldAsUrl(m_field, width, height, border).toString();
     }
 
     Field& getField(){

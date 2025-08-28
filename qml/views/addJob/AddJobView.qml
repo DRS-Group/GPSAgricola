@@ -1,3 +1,4 @@
+import GpsAgricola 1.0
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -5,38 +6,61 @@ import QtQuick.Window
 import QtQuick.Effects
 import QtQuick.Dialogs
 import "../../components"
+import "components"
 
 Page {
-    id: addFieldViewPage
-    objectName: "AddFieldView"
-    title: "AddFieldView"
+    id: addJobViewPage
+    objectName: "AddJobView"
+    title: "AddJobView"
 
-    property alias field: addField.field
-
+    property Item fieldSelectorModalInstance: null
     property Item textInputModalInstance: null
 
     Connections {
-        target: field
-        function onPolygonChanged() {
-            fieldImage.source = field.renderFieldAsUrl(fieldImage.width, fieldImage.height, 5)
+        target: viewModel
+        function onFieldNameChanged() {
+            fieldImage.source = viewModel.renderFieldAsUrl(fieldImage.width, fieldImage.height, 5)
         }
     }
 
-    AddFieldView {
-        id: addField
+    AddJobView {
+        id: addJobView
+    }
+
+    AddJobViewModel{
+        id: viewModel;
+    }
+
+    Component{
+        id: fieldSelectorModalComponent
+        FieldSelectorModal{
+            onSelect: (fieldName) => {
+                          console.log("Selected field:", fieldName)
+                          viewModel.fieldName = fieldName
+                          fieldSelectorModalInstance.destroy();
+                      }
+            onClose: {
+                fieldSelectorModalInstance.destroy();
+            }
+        }
+    }
+
+    function showFieldSelectorModal(){
+        if(!fieldSelectorModalInstance)
+            fieldSelectorModalInstance = fieldSelectorModalComponent.createObject(addJobViewPage);
     }
 
     Component{
         id: textInputModalComponent
         TextInputModal{
-            value: field.name
+            value: viewModel.name
             onClose: {
                 textInputModalInstance.destroy();
             }
             onPressEnter: {
                 if(textInputModalInstance.value === "") return;
 
-                field.name = textInputModalInstance.value;
+                viewModel.name = textInputModalInstance.value;
                 textInputModalInstance.destroy();
             }
         }
@@ -44,12 +68,12 @@ Page {
 
     function showTextInputModal(){
         if(!textInputModalInstance)
-            textInputModalInstance = textInputModalComponent.createObject(addFieldViewPage);
+            textInputModalInstance = textInputModalComponent.createObject(addJobViewPage);
     }
 
     TopBar{
         id: header
-        titleText: "Adicionar Campo"
+        titleText: "Adicionar Trabalho"
     }
 
     Rectangle {
@@ -76,7 +100,7 @@ Page {
                     columns: 2
                     columnSpacing: 16
                     rowSpacing: 24
-                    anchors.top: parent.top           // must set this
+                    anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.topMargin: 48
@@ -86,7 +110,6 @@ Page {
                     Text{
                         text: "Nome"
                         font.bold: true
-
                     }
                     Item{
                         Layout.fillWidth: true
@@ -103,10 +126,10 @@ Page {
                             Layout.preferredHeight: 50
 
                             Text{
-                                text: field.name || "Sem nome"
+                                text: viewModel.name || "Sem nome"
                                 anchors.centerIn: parent
                                 color: {
-                                    if(field.name) return "black"
+                                    if(viewModel.name) return "black"
                                     return "#9f9f9f"
                                 }
                             }
@@ -131,7 +154,6 @@ Page {
                         }
                     }
 
-
                     Rectangle {
                         Layout.columnSpan: 2   // span across both columns
                         Layout.fillWidth: true
@@ -139,9 +161,8 @@ Page {
                         color: "#bfbfbf"
                     }
 
-
                     Text{
-                        text: "Área total"
+                        text: "Campo"
                         font.bold: true
                     }
                     Item{
@@ -149,8 +170,7 @@ Page {
                         Layout.preferredHeight: 54
 
                         Rectangle{
-                            id: totalArea
-                            color: "#dfdfdf"
+                            id: field
                             border.color: "#bfbfbf"
                             border.width: 1
                             radius: 8
@@ -160,31 +180,26 @@ Page {
                             Layout.preferredHeight: 50
 
                             Text{
-                                text: {
-                                    if(!field.area) return "-";
-                                    var ha = field.area / 10000.0;
-                                    var v = ha.toFixed(2);
-                                    var parts = v.split(".");
-                                    var intPart = parts[0];
-                                    var decPart = parts[1];
-
-                                    var withSep = "";
-                                    while (intPart.length > 3) {
-                                        withSep = "." + intPart.slice(-3) + withSep;
-                                        intPart = intPart.slice(0, intPart.length - 3);
-                                    }
-                                    if (intPart.length > 0)
-                                        withSep = intPart + withSep;
-
-                                    return withSep + "," + decPart + " ha";
-                                }
+                                text: viewModel.fieldName || "Sem campo"
                                 anchors.centerIn: parent
+                                color: {
+                                    if(viewModel.fieldName) return "black"
+                                    return "#9f9f9f"
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    showFieldSelectorModal();
+                                }
                             }
                         }
 
                         MultiEffect {
-                            anchors.fill: totalArea
-                            source: totalArea
+                            anchors.fill: field
+                            source: field
                             autoPaddingEnabled: true
                             shadowEnabled: true
                             shadowVerticalOffset: 4
@@ -192,61 +207,13 @@ Page {
                             shadowColor: "#40000000"
                         }
                     }
+
 
                     Rectangle {
                         Layout.columnSpan: 2   // span across both columns
                         Layout.fillWidth: true
                         Layout.preferredHeight: 1
                         color: "#bfbfbf"
-                    }
-
-                    Text{
-                        text: "Localizacão"
-                        font.bold: true
-                    }
-                    Item{
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 54
-
-                        Rectangle{
-                            id: coordinates
-                            color: "#dfdfdf"
-                            border.color: "#c5c5c5"
-                            border.width: 1
-                            radius: 8
-                            anchors.fill: parent
-
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 50
-
-                            Text{
-                                text: {
-                                    if(field.origin.latitude === 0 && field.origin.longitude === 0) return "-";
-
-                                    function toDMS(deg, isLat) {
-                                        var hemisphere = isLat ? (deg >= 0 ? "N" : "S") : (deg >= 0 ? "E" : "W");
-                                        deg = Math.abs(deg);
-                                        var d = Math.floor(deg);
-                                        var m = Math.floor((deg - d) * 60);
-                                        var s = ((deg - d - m/60) * 3600).toFixed(2);
-                                        return d + "°" + m + "'" + s + "\" " + hemisphere;
-                                    }
-
-                                    return toDMS(field.origin.latitude, true) + ", " + toDMS(field.origin.longitude, false);
-                                }
-                                anchors.centerIn: parent
-                            }
-                        }
-
-                        MultiEffect {
-                            anchors.fill: coordinates
-                            source: coordinates
-                            autoPaddingEnabled: true
-                            shadowEnabled: true
-                            shadowVerticalOffset: 4
-                            shadowBlur: 1.0
-                            shadowColor: "#40000000"
-                        }
                     }
                 }
             }
@@ -262,9 +229,9 @@ Page {
                     width: parent.width * 0.75
                     height: width * 0.75
                     fillMode: Image.PreserveAspectFit
-                    source: field.renderFieldAsUrl(width, height, 5)
+                    source: viewModel.renderFieldAsUrl(width, height, 5)
                     anchors.centerIn: parent
-                    visible: field.polygon.length >= 3
+                    visible: viewModel.fieldName !== ""
                 }
 
                 Rectangle {
@@ -276,13 +243,7 @@ Page {
                     border.color: "black"
                     border.width: 1
                     radius: 4
-                    visible: field.polygon.length < 3
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: fileDialog.open()
-                    }
+                    visible: viewModel.fieldName === ""
 
                     Column {
                         anchors.centerIn: parent
@@ -290,32 +251,16 @@ Page {
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Clique para importar um arquivo"
+                            text: "Clique para selecionar um campo"
                             font.pixelSize: 16
-                        }
-
-                        Image {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            source: "qrc:/assets/icons/tray-arrow-down-black.svg"
-                            width: 24
-                            height: 24
-                            fillMode: Image.PreserveAspectFit
                         }
                     }
 
-                    FileDialog {
-                        id: fileDialog
-                        title: "Selecione o arquivo do talhão"
-                        currentFolder: "/home"
-                        nameFilters: ["GeoJSON Files (*.geojson)"]
-                        onAccepted: {
-                            console.log("Selected file:", selectedFile)
-                            addField.loadFromFile(selectedFile)
-                            // Call your C++ method to import the file here
-                            // e.g. field.importPolygonFromFile(file)
-                        }
-                        onRejected: {
-                            console.log("File selection canceled")
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            showFieldSelectorModal();
                         }
                     }
                 }
@@ -351,14 +296,17 @@ Page {
             }
 
             MouseArea {
-                enabled: field.name !== "" && field.polygon.length > 3
+                // enabled: field.name !== "" && field.polygon.length > 3
 
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    if(addField.saveField()){
-                        stackView.pop();
-                    }
+                    viewModel.fieldName = "Talhão 2";
+                    console.log("ok")
+                    // if(addField.saveField()){
+                    //     stackView.pop();
+
+                    // }
                 }
             }
         }

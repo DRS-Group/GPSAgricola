@@ -3,11 +3,8 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 
 Item {
-    id: fieldItem
+    id: jobItem
     property alias name: nameText.text
-    property real area: 0
-    property real originLat: 0
-    property real originLon: 0
     property url imageSource  // this will hold the passed Image element
 
     width: ListView.view.width
@@ -45,40 +42,40 @@ Item {
                 font.bold: true
             }
 
-            Text {
-                text: {
-                    var ha = area / 10000.0
-                    var v = ha.toFixed(2)
-                    var parts = v.split(".")
-                    var intPart = parts[0]
-                    var decPart = parts[1]
+            // Text {
+            //     text: {
+            //         var ha = area / 10000.0
+            //         var v = ha.toFixed(2)
+            //         var parts = v.split(".")
+            //         var intPart = parts[0]
+            //         var decPart = parts[1]
 
-                    var withSep = ""
-                    while (intPart.length > 3) {
-                        withSep = "." + intPart.slice(-3) + withSep
-                        intPart = intPart.slice(0, intPart.length - 3)
-                    }
-                    if (intPart.length > 0)
-                        withSep = intPart + withSep
+            //         var withSep = ""
+            //         while (intPart.length > 3) {
+            //             withSep = "." + intPart.slice(-3) + withSep
+            //             intPart = intPart.slice(0, intPart.length - 3)
+            //         }
+            //         if (intPart.length > 0)
+            //             withSep = intPart + withSep
 
-                    return "Área: " + withSep + "," + decPart + " ha"
-                }
-            }
+            //         return "Área: " + withSep + "," + decPart + " ha"
+            //     }
+            // }
 
-            Text {
-                text: {
-                    function toDMS(deg, isLat) {
-                        var hemisphere = isLat ? (deg >= 0 ? "N" : "S") : (deg >= 0 ? "L" : "O")
-                        deg = Math.abs(deg)
-                        var d = Math.floor(deg)
-                        var m = Math.floor((deg - d) * 60)
-                        var s = ((deg - d - m/60) * 3600).toFixed(2)
-                        return d + "°" + m + "'" + s + "\" " + hemisphere
-                    }
+            // Text {
+            //     text: {
+            //         function toDMS(deg, isLat) {
+            //             var hemisphere = isLat ? (deg >= 0 ? "N" : "S") : (deg >= 0 ? "E" : "W")
+            //             deg = Math.abs(deg)
+            //             var d = Math.floor(deg)
+            //             var m = Math.floor((deg - d) * 60)
+            //             var s = ((deg - d - m/60) * 3600).toFixed(2)
+            //             return d + "°" + m + "'" + s + "\" " + hemisphere
+            //         }
 
-                    "Localização: " + toDMS(originLat, true) + ", " + toDMS(originLon, false)
-                }
-            }
+            //         "Localização: " + toDMS(originLat, true) + ", " + toDMS(originLon, false)
+            //     }
+            // }
         }
 
         // Spacer to push icon to the right
