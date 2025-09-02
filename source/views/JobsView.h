@@ -20,6 +20,9 @@ public:
     }
 
     Q_INVOKABLE QUrl renderFieldAsBase64(const QString &fieldName, int width, int height, int border=0);
+    Q_INVOKABLE void refreshJobs();
+    Q_INVOKABLE void setCurrentJob(QString id);
+
 
 signals:
     void jobsChanged();

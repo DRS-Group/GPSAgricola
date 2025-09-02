@@ -6,6 +6,8 @@ Item {
     id: jobItem
     property alias name: nameText.text
     property url imageSource  // this will hold the passed Image element
+    property int jobType: 0;
+    signal click();
 
     width: ListView.view.width
     height: 120
@@ -42,25 +44,15 @@ Item {
                 font.bold: true
             }
 
-            // Text {
-            //     text: {
-            //         var ha = area / 10000.0
-            //         var v = ha.toFixed(2)
-            //         var parts = v.split(".")
-            //         var intPart = parts[0]
-            //         var decPart = parts[1]
-
-            //         var withSep = ""
-            //         while (intPart.length > 3) {
-            //             withSep = "." + intPart.slice(-3) + withSep
-            //             intPart = intPart.slice(0, intPart.length - 3)
-            //         }
-            //         if (intPart.length > 0)
-            //             withSep = intPart + withSep
-
-            //         return "Área: " + withSep + "," + decPart + " ha"
-            //     }
-            // }
+            Text {
+                text: {
+                    let strJobType;
+                    if(jobType === 0) strJobType="Catação";
+                    if(jobType === 0) strJobType="Pulverização";
+                    if(jobType === 0) strJobType="Plantação";
+                    return "Tipo: " + strJobType;
+                }
+            }
 
             // Text {
             //     text: {
@@ -100,5 +92,13 @@ Item {
         anchors.right: parent.right
         height: 1
         color: "#bfbfbf"
+    }
+
+    MouseArea{
+        anchors.fill: parent
+        cursorShape: "PointingHandCursor"
+        onClicked: {
+            click();
+        }
     }
 }

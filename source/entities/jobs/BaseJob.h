@@ -20,7 +20,6 @@ public:
 
     QString id;
     QString name;
-    QGeoCoordinate origin;
     Field field;
     QDateTime creationDateTime;
 

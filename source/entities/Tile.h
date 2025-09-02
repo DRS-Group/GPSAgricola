@@ -4,7 +4,7 @@
 #include <QQuick3DTextureData>
 
 struct Tile {
-    Tile(float size = 512, int resolution = 512)
+    Tile(float size = 100, int resolution = 1000)
         : size(size),
           resolution(resolution),
           fieldPixels(((resolution * resolution) + 7) / 8, 0), // bit-packed

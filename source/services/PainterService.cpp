@@ -2,7 +2,14 @@
 
 #include "source/services/FieldService.h"
 #include <QElapsedTimer>
+#include <QImage>
+#include <QList>
+#include <QPainter>
+#include <QPair>
+#include <QPolygonF>
+#include <QtConcurrent/QtConcurrent>
 #include <QtConcurrent/QtConcurrentRun>
+#include <cmath>
 
 PainterService *PainterService::instance = nullptr;
 
@@ -13,13 +20,7 @@ PainterService *PainterService::getInstance() {
     return instance;
 }
 
-PainterService::PainterService(QObject *parent) : BaseService(parent) {
-    // const FieldService *fieldService = FieldService::getInstance();
-
-    // const std::vector<QGeoCoordinate> polygon =
-    //     fieldService->loadFromGeoJSON("/home/gustavodbp/casa.json");
-    // rasterizeField(worldOrigin, polygon, tiles);
-}
+PainterService::PainterService(QObject *parent) : BaseService(parent) {}
 
 void PainterService::drawPolygonGeo(TileMap &tileMap,
                                     const QGeoCoordinate &worldOrigin,
@@ -169,6 +170,61 @@ void PainterService::rasterizeField(const QGeoCoordinate &worldOrigin,
                     }
                 }
             }
+        }
+    }
+}
+
+void PainterService::rasterizeFieldOptimized(
+    const QGeoCoordinate &worldOrigin, const std::vector<QGeoCoordinate> &geoCoords,
+    TileMap &tileMap) {
+    if (geoCoords.size() < 3)
+        return;
+
+    // Convert polygon to world coordinates
+    QPolygonF worldPolygon;
+    for (const auto &coord : geoCoords)
+        worldPolygon << geoToWorldPixel(coord, worldOrigin);
+
+    QRectF bbox = worldPolygon.boundingRect();
+    int minTileX = static_cast<int>(std::floor(bbox.left() / tileMap.tileSize));
+    int maxTileX = static_cast<int>(std::floor(bbox.right() / tileMap.tileSize));
+    int minTileY = static_cast<int>(std::floor(bbox.top() / tileMap.tileSize));
+    int maxTileY = static_cast<int>(std::floor(bbox.bottom() / tileMap.tileSize));
+
+    for (int tx = minTileX; tx <= maxTileX; ++tx) {
+        for (int ty = minTileY; ty <= maxTileY; ++ty) {
+            Tile &tile = tileMap.getTile(tx, ty);
+
+            // Map polygon to tile-local pixel coordinates
+            QPolygonF localPolygon;
+            for (const QPointF &wp : worldPolygon) {
+                double lx = (wp.x() - tx * tileMap.tileSize) / tileMap.tileSize *
+                            tile.resolution;
+                double ly = (wp.y() - ty * tileMap.tileSize) / tileMap.tileSize *
+                            tile.resolution;
+                localPolygon << QPointF(lx, ly);
+            }
+
+            // Temporary image buffer (1 byte per pixel)
+            QImage tmp(tile.resolution, tile.resolution, QImage::Format_Grayscale8);
+            tmp.fill(0);
+
+            QPainter painter(&tmp);
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(Qt::white); // white = inside field
+            painter.drawPolygon(localPolygon);
+            painter.end();
+
+            // Copy into bit-packed fieldPixels
+            for (int y = 0; y < tile.resolution; ++y) {
+                for (int x = 0; x < tile.resolution; ++x) {
+                    if (tmp.pixelColor(x, y).value() > 0) {
+                        setFieldPixel(tile, x, y, true);
+                    }
+                }
+            }
+
+            tile.dirty = true;
         }
     }
 }

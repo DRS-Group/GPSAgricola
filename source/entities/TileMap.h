@@ -14,8 +14,7 @@ struct TileIDHash {
 };
 
 struct TileMap {
-  TileMap(float tileSize = 51.2f, int tileResolution = 1024)
-        : tileSize(tileSize), tileResolution(tileResolution) {}
+  TileMap(){}
 
   Tile &getTile(int tileX, int tileY) {
       std::pair<int, int> id(tileX, tileY);
@@ -71,22 +70,26 @@ struct TileMap {
   QQuick3DTextureData *createTileFieldTexture(Tile &tile,
                                               QQuick3DObject *parent) {
       QQuick3DTextureData *texData = new QQuick3DTextureData(parent);
+      int res = tile.resolution;
 
-      texData->setSize(QSize(tile.resolution, tile.resolution));
+      texData->setSize(QSize(res, res));
       texData->setFormat(QQuick3DTextureData::R8);
 
-      // Convert bit-packed fieldPixels into bytes for texture
-      QByteArray buffer(tile.resolution * tile.resolution, 0);
+      // Allocate buffer once
+      QByteArray buffer(res * res, 0);
+      uint8_t* ptr = reinterpret_cast<uint8_t*>(buffer.data());
 
-      for (int y = 0; y < tile.resolution; ++y) {
-          for (int x = 0; x < tile.resolution; ++x) {
-              bool isField = getFieldPixel(tile, x, y); // implement bit access
-              buffer[y * tile.resolution + x] = isField ? -1 : 0;
-          }
+      const std::vector<uint8_t> &field = tile.fieldPixels;
+
+      // Convert bit-packed fieldPixels into byte-per-pixel
+      int totalPixels = res * res;
+      for (int i = 0; i < totalPixels; ++i) {
+          int byteIndex = i >> 3;     // i / 8
+          int bitIndex  = i & 7;      // i % 8
+          ptr[i] = ((field[byteIndex] >> bitIndex) & 1) ? 255 : 0;
       }
 
       texData->setTextureData(buffer);
-
       return texData;
   }
 
@@ -144,8 +147,8 @@ struct TileMap {
   }
 
   std::unordered_map<std::pair<int, int>, Tile, TileIDHash> tiles;
-  float tileSize;
-  int tileResolution;
+  float tileSize = 100; // tileSize in meters
+  int tileResolution = 1000; // how many pixels are there in each row
 };
 
 #endif // TILEMAP_H

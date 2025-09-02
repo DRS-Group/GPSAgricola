@@ -15,9 +15,14 @@ public:
                                        const Field &field);
 
     BaseJob *getCurrentJob() const { return currentJob.get(); }
+    void setCurrentJobById(const QString &id) {
+        currentJob.reset(loadJobById(id));
+    }
+
 
     bool saveJob(BaseJob *job);
     BaseJob *loadJob(const QString &fileName);
+    BaseJob *loadJobById(const QString &id);
     QStringList getAllJobIds() const;
     QList<BaseJob *> getAllJobs() const;
 

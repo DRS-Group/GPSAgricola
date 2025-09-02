@@ -301,12 +301,9 @@ Page {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    viewModel.fieldName = "Talhão 2";
-                    console.log("ok")
-                    // if(addField.saveField()){
-                    //     stackView.pop();
-
-                    // }
+                    if(addJobView.saveJob(viewModel)){
+                        stackView.pop();
+                    }
                 }
             }
         }

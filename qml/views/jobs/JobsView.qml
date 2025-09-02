@@ -11,6 +11,10 @@ Page {
     objectName: "JobsView"
     title: "JobsView"
 
+    StackView.onActivating: {
+        jobsView.refreshJobs();
+    }
+
     JobsView {
         id: jobsView
     }
@@ -35,6 +39,12 @@ Page {
             delegate: JobItem {
                 name: model.name
                 imageSource: jobsView.renderFieldAsBase64(model.fieldName, 100, 100, 2)
+                jobType: model.type
+
+                onClick: {
+                    jobsView.setCurrentJob(model.id);
+                    stackView.push("../FieldView.qml");
+                }
             }
         }
 
@@ -47,7 +57,7 @@ Page {
 
             anchors.bottom: parent.bottom
             anchors.right: parent.right
-            anchors.margins: 16   // offset from edges
+            anchors.margins: 16
 
             Image {
                 anchors.centerIn: parent

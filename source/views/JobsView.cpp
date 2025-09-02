@@ -5,25 +5,26 @@
 #include <QBuffer>
 
 JobsView::JobsView(QObject *parent) : BaseView(parent) {
+    // qDebug() << "jobsView";
     jobsService = JobsService::getInstance();
-    // FieldService *fieldService = FieldService::getInstance();
-    // Field field = fieldService->getFieldByName("Campo 1");
+    // // FieldService *fieldService = FieldService::getInstance();
+    // // Field field = fieldService->getFieldByName("Campo 1");
 
-    // std::unique_ptr<BaseJob> job = jobsService->createJob(JobType::Spray, "Trablaho 1", field);
+    // // std::unique_ptr<BaseJob> job = jobsService->createJob(JobType::Spray, "Trablaho 1", field);
 
-    // jobs.append(jobObject);
+    // // jobs.append(jobObject);
 
-    // jobsService->saveJob(job.get());
+    // // jobsService->saveJob(job.get());
 
-    // BaseJob* job = jobsService->loadJob("teste.drs");
-    // JobObject* jobObject = new JobObject(job);
-    // jobs.append(jobObject);
+    // // BaseJob* job = jobsService->loadJob("teste.drs");
+    // // JobObject* jobObject = new JobObject(job);
+    // // jobs.append(jobObject);
 
-    QList<BaseJob *> jobsList = jobsService->getAllJobs();
-    for (BaseJob *job : jobsList) {
-        JobObject *jobObject = new JobObject(job);
-        jobs.append(jobObject);
-    }
+    // QList<BaseJob *> jobsList = jobsService->getAllJobs();
+    // for (BaseJob *job : jobsList) {
+    //     JobObject *jobObject = new JobObject(job);
+    //     jobs.append(jobObject);
+    // }
 }
 
 QUrl JobsView::renderFieldAsBase64(const QString &fieldName, int width,
@@ -44,4 +45,23 @@ QUrl JobsView::renderFieldAsBase64(const QString &fieldName, int width,
     }
 
     return QString();
+}
+
+void JobsView::refreshJobs() {
+    // Free old job objects
+    qDeleteAll(jobs);
+    jobs.clear();
+
+    // Reload from service
+    QList<BaseJob *> jobsList = jobsService->getAllJobs();
+    for (BaseJob *job : jobsList) {
+        JobObject *jobObject = new JobObject(job);
+        jobs.append(jobObject);
+    }
+
+    emit jobsChanged();
+}
+
+void JobsView::setCurrentJob(QString id){
+    jobsService->setCurrentJobById(id);
 }

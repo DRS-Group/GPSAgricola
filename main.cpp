@@ -14,6 +14,7 @@ int main(int argc, char *argv[]) {
     qmlRegisterType<AddFieldView>("GPSAgricola", 1, 0, "AddFieldView");
     qmlRegisterType<JobsView>("GPSAgricola", 1, 0, "JobsView");
     qmlRegisterType<AddJobView>("GPSAgricola", 1, 0, "AddJobView");
+     qmlRegisterType<FieldView>("GPSAgricola", 1, 0, "FieldView");
 
     qmlRegisterType<AddJobViewModel>("GpsAgricola", 1, 0, "AddJobViewModel");
 

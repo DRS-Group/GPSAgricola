@@ -1,5 +1,4 @@
 #include "FieldView.h"
-#include "../application.h"
 #include "source/ServicesManager.h"
 
 #include <QQuickItem>
@@ -8,23 +7,22 @@
 #include <qqmlcontext.h>
 
 FieldView::FieldView(QObject *parent) : BaseView(parent) {
-    Application::getInstance()->getEngine()->rootContext()->setContextProperty("fieldViewCpp", this);
+    JobsService *jobsService = JobsService::getInstance();
+    GeolocationService* geolocationService = ServicesManager::getInstance()->geolocationService;
+    setFieldOrigin(geolocationService->geoToCentimeters(jobsService->getCurrentJob()->field.origin));
 
-    ServicesManager::getInstance()->geolocationService->SetSpeed(10);
-    ServicesManager::getInstance()->geolocationService->SetRotationSpeed(10);
+    // Application::getInstance()->getEngine()->rootContext()->setContextProperty("fieldViewCpp", this);
 
-    QObject *rootObject =
-        Application::getInstance()->getEngine()->rootObjects().first();
-    if (rootObject) {
-        QObject *fieldViewQml = rootObject->findChild<QObject *>("FieldView");
-        if (fieldViewQml) {
-            QMetaObject::invokeMethod(fieldViewQml, "createTiles");
-        }
-    }
+    // ServicesManager::getInstance()->geolocationService->SetSpeed(50);
+    // ServicesManager::getInstance()->geolocationService->SetRotationSpeed(1);
+
+    jobsService->getCurrentJob()->redrawField();
+
+    qDebug() << geolocationService->centimetersToGeo(QVector2D(1000, 1000));
 }
 
 FieldView::~FieldView(){
-    Application::getInstance()->getEngine()->rootContext()->setContextProperty("fieldViewCpp", nullptr);
+    // Application::getInstance()->getEngine()->rootContext()->setContextProperty("fieldViewCpp", nullptr);
 }
 
 QQuick3DTextureData *FieldView::getTileFieldTexture(int tileX, int tileY,
@@ -32,4 +30,30 @@ QQuick3DTextureData *FieldView::getTileFieldTexture(int tileX, int tileY,
     JobsService *jobsService = JobsService::getInstance();
     BaseJob *currentJob = jobsService->getCurrentJob();
     return currentJob->getTileFieldTexture(tileX, tileY, parent);
+}
+
+QVector2D FieldView::coordinateInCentimeters(){
+    GeolocationService* geolocationService = ServicesManager::getInstance()->geolocationService;
+    return geolocationService->coordinateInCentimeters();
+}
+
+void FieldView::setSpeed(float speed) {
+    auto geo = ServicesManager::getInstance()->geolocationService;
+    if (geo)
+        geo->SetSpeed(speed);
+}
+
+void FieldView::setRotationSpeed(float rotationSpeed) {
+    auto geo = ServicesManager::getInstance()->geolocationService;
+    if (geo)
+        geo->SetRotationSpeed(rotationSpeed);
+}
+
+
+QVector2D FieldView::geoToCentimeters(const QGeoCoordinate &coord) const {
+    GeolocationService* geo = ServicesManager::getInstance()->geolocationService;
+    if (geo) {
+        return geo->geoToCentimeters(coord);
+    }
+    return QVector2D(0, 0); // fallback if geolocation service is null
 }

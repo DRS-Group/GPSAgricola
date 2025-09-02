@@ -39,8 +39,6 @@ public:
 
             if (this->currentPageTitle == "HomeView")
                 this->currentView = new HomeView(this);
-            else if (this->currentPageTitle == "FieldView")
-                this->currentView = new FieldView(this);
             else if (this->currentPageTitle == "FieldsView")
                 this->currentView = new FieldsView(this);
             // else if (this->currentPageTitle == "AddFieldView")

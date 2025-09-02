@@ -14,9 +14,19 @@ Page {
     objectName: "FieldView"
     title: "FieldView"
 
+    focus: true              // allows the page to receive key events
+    Keys.enabled: true       // enable Keys handler
+    Component.onCompleted: {
+        forceActiveFocus()   // ensures the Page actually has focus
+    }
+
+    FieldView{
+        id: fieldViewCpp
+    }
+
     property int tileCountX: 10
     property int tileCountY: 10
-    property real tileSize: 100
+    property real tileSize: fieldViewCpp.tileSize * 100 // multiply by 100 to get in centimeters
 
     property real targetYaw: 0
     property real targetPitch: 25
@@ -25,10 +35,24 @@ Page {
     property real cameraPitch: 25
     property real cameraRadius: 2000
 
-    property vector2d targetPosition: geolocationService.coordinateInCentimeters()
-    property vector2d position: geolocationService.coordinateInCentimeters()
+    property vector2d targetPosition: getTargetPosition();
+    property vector2d position: getTargetPosition();
     property real targetRotation: geolocationService.eulerRotation()
     property real rotation: geolocationService.eulerRotation()
+
+    function getTargetPosition() {
+        // Vehicle/world position in centimeters
+        const rawPos = fieldViewCpp.coordinateInCentimeters();
+        // Field origin in centimeters (world corner)
+        const fieldOrigin = fieldViewCpp.fieldOrigin;
+
+        let x = (rawPos.x + fieldOrigin.x);
+        let y = (rawPos.y + fieldOrigin.y);
+
+        // Return as Qt.vector2d
+        return Qt.vector2d(x, y);
+    }
+
 
     function norm360(a) { return (a % 360 + 360) % 360 }
     function norm180(a) { return ((a + 180) % 360 + 360) % 360 - 180 }
@@ -41,18 +65,75 @@ Page {
     }
 
     function createTiles() {
+        // create tiles with only indices; positioning done by updateTiles()
         for (let x = -tileCountX; x <= tileCountX; x++) {
             for (let y = -tileCountY; y <= tileCountY; y++) {
                 tileComponent.createObject(tiles, {
-                                               "x": (x * tileSize + tileSize/2) * 100,
-                                               "y": 0,
-                                               "z": -(y * tileSize + tileSize/2) * 100,
                                                "tileXIndex": x,
-                                               "tileYIndex": y
-                                           })
+                                               "tileYIndex": y,
+                                               "logicalX": 0,
+                                               "logicalY": 0
+                                           });
+            }
+        }
+        // position them once for the current position
+        updateTiles(true);
+    }
+
+    function updateTiles(force = false) {
+        let logicalOriginX = -Math.ceil(position.x / tileSize);
+        let logicalOriginY = -Math.ceil(position.y / tileSize);
+
+        for (let t of tiles.children) {
+            let logicalX = t.tileXIndex + logicalOriginX;
+            let logicalY = t.tileYIndex + logicalOriginY;
+
+            t.x = logicalX * tileSize + tileSize / 2;
+            t.z = -logicalY * tileSize - tileSize / 2;
+
+            if (force || t.logicalX !== logicalX || t.logicalY !== logicalY) {
+                t.logicalX = logicalX;
+                t.logicalY = logicalY;
+
+                t.materials[0].fieldTex.texture.textureData =
+                    fieldViewCpp.getTileFieldTexture(logicalX, logicalY, t.materials[0].fieldTex.texture);
             }
         }
     }
+
+    Timer {
+        interval: 40; running: true; repeat: true
+        onTriggered: {
+            cameraYaw   = lerpAngle(cameraYaw, targetYaw - targetRotation, 0.15);
+            cameraPitch = cameraPitch + (targetPitch - cameraPitch) * 0.15;
+            cameraRadius= cameraRadius + (targetRadius - cameraRadius) * 0.15;
+            updateCameraPosition();
+
+            let lerpX = lerp(position.x, targetPosition.x, 0.15);
+            let lerpY = lerp(position.y, targetPosition.y, 0.15);
+
+            position.x = lerpX;
+            position.y = lerpY;
+            dynamicScene.position.x = position.x;
+            dynamicScene.position.z = -position.y;
+
+            rotation = lerpAngle(rotation, targetRotation, 0.15);
+            vehicle.eulerRotation.y = -rotation;
+
+            updateTiles();
+        }
+    }
+
+    Timer{
+        interval: 200
+        running: true
+        repeat: true
+        onTriggered: {
+            targetPosition = getTargetPosition();
+            targetRotation = geolocationService.eulerRotation();
+        }
+    }
+
 
     function updateCameraPosition() {
         var yawRad = cameraYaw * Math.PI / 180
@@ -66,16 +147,30 @@ Page {
     }
 
     Keys.onPressed: (event) => {
-                        console.log("Key down:", event.key)
-                        if (event.key === Qt.Key_Left) {
-                            console.log("Left arrow pressed")
+                        // console.log("Key down:", event.key)
+                        if (event.key === Qt.Key_W) {
+                            // Move forward
+                            fieldViewCpp.setSpeed(5)
+                        } else if (event.key === Qt.Key_S) {
+                            // Move backward / reverse
+                            fieldViewCpp.setSpeed(-5)
+                        } else if (event.key === Qt.Key_A) {
+                            // Rotate left
+                            fieldViewCpp.setRotationSpeed(-30.0)
+                        } else if (event.key === Qt.Key_D) {
+                            // Rotate right
+                            fieldViewCpp.setRotationSpeed(30.0)
                         }
                     }
 
     Keys.onReleased: (event) => {
-                         console.log("Key up:", event.key)
-                         if (event.key === Qt.Key_Left) {
-                             console.log("Left arrow released")
+                         // console.log("Key up:", event.key)
+                         if (event.key === Qt.Key_W || event.key === Qt.Key_S) {
+                             // Stop forward/backward movement
+                             fieldViewCpp.setSpeed(0.0)
+                         } else if (event.key === Qt.Key_A || event.key === Qt.Key_D) {
+                             // Stop rotation
+                             fieldViewCpp.setRotationSpeed(0.0)
                          }
                      }
 
@@ -86,22 +181,25 @@ Page {
             property int tileXIndex
             property int tileYIndex
 
+            property int logicalX: 0
+            property int logicalY: 0
+
             source: "#Rectangle"
-            scale: Qt.vector3d(tileSize, tileSize, tileSize)
+            scale: Qt.vector3d(tileSize / 100, tileSize / 100, tileSize / 100)
             eulerRotation: Qt.vector3d(-90, 0, 0)
 
             materials: [
                 CustomMaterial {
                     property real tileSize: parent.scale.x
-                    property real checkerSize: 25
+                    property real checkerSize: 10
                     property int resolution: 1000
 
-                    property TextureInput sprayedTex: TextureInput{
-                        texture: Texture{
-                            id: sprayedTexture
-                            // textureData: painterService.getTileTexture(tileXIndex, tileYIndex, sprayedTexture)
-                        }
-                    }
+                    // property TextureInput sprayedTex: TextureInput{
+                    //     texture: Texture{
+                    //         id: sprayedTexture
+                    //         // textureData: painterService.getTileTexture(tileXIndex, tileYIndex, sprayedTexture)
+                    //     }
+                    // }
 
                     property TextureInput fieldTex: TextureInput {
                         texture: Texture {
@@ -118,56 +216,36 @@ Page {
         }
     }
 
-    Timer {
-        interval: 40; running: true; repeat: true
-        onTriggered: {
-            cameraYaw   = lerpAngle(cameraYaw, targetYaw - targetRotation, 0.15);
-            cameraPitch = cameraPitch + (targetPitch - cameraPitch) * 0.15;
-            cameraRadius= cameraRadius + (targetRadius - cameraRadius) * 0.15;
-            updateCameraPosition();
 
-            let lerpX = lerp(position.x, targetPosition.x, 0.15);
-            let lerpY = lerp(position.y, targetPosition.y, 0.15);
 
-            // const pGeo0 = geolocationService.centimetersToGeo(position);
-            // const pGeo1 = geolocationService.centimetersToGeo(Qt.vector2d(lerpX, lerpY));
+    Rectangle{
+        anchors.top: parent.top
+        anchors.left: parent.left
+        width: 500
+        // height: 200
+        z: 10
 
-            // painterService.drawLineGeo(
-            //             QtPositioning.coordinate(0, 0),
-            //             // QtPositioning.coordinate(-21.12174192463783, -48.96224030991499),
-            //             pGeo0,
-            //             pGeo1,
-            //             141   // gray value
-            //             )
-
-            position.x = lerpX;
-            position.y = lerpY;
-            tiles.position.x = -position.x;
-            tiles.position.z = position.y;
-
-            rotation = lerpAngle(rotation, targetRotation, 0.15);
-            vehicle.eulerRotation.y = -rotation;
+        Text{
+            id: txt1
+            text: "x: " + targetPosition.x + " | y: " + targetPosition.y
+            anchors.top: parent.top
         }
-    }
-
-    Timer {
-        interval: 40
-        running: true
-        repeat: true
-        onTriggered: {
-            for (let t of tiles.children) {
-                // painterService.getTileTexture(t.tileXIndex, t.tileYIndex, t);
+        Text{
+            id: txt2
+            text: "x: " + geolocationService.coordinateInCentimeters().x + " | y: " + geolocationService.coordinateInCentimeters().y
+            anchors.top: txt1.bottom
+        }
+        Text{
+            id: txt3
+            text: "x: " + fieldViewCpp.fieldOrigin.x + " | y: " + fieldViewCpp.fieldOrigin.y
+            anchors.top: txt2.bottom
+        }
+        Text{
+            text: {
+                const tileColumn = Math.floor(targetPosition.x / tileSize);
+                return tileColumn
             }
-        }
-    }
-
-    Timer{
-        interval: 200
-        running: true
-        repeat: true
-        onTriggered: {
-            targetPosition = geolocationService.coordinateInCentimeters()
-            targetRotation = geolocationService.eulerRotation()
+            anchors.top: txt3.bottom
         }
     }
 
@@ -219,58 +297,32 @@ Page {
 
                 Tractor_A {
                     id: vehicle
+                    // visible: false
                 }
             }
 
-            Node{ id: tiles }
+            Node {
+                id: dynamicScene
+                Node{ id: tiles }
 
-            // Model {
-            //     id: groundPlane
-            //     source: "#Rectangle"
-            //     scale: Qt.vector3d(10000, 10000, 10000)
-            //     eulerRotation: Qt.vector3d(-90, 0, 0)
-            //     position: Qt.vector3d(0, -20, 0)
-            //     materials: PrincipledMaterial{
-            //         id: materialTeste
-            //         baseColorMap: Texture{
-            //             id: texturaTeste
-            //             source: "qrc:/assets/ground-grid.jpg"
-            //             magFilter: Texture.Nearest
-            //             tilingModeHorizontal: Texture.Repeat
-            //             scaleV: 25
-            //             scaleU: 25
-            //         }
-            //         roughness: 1
-            //         metalness: 0
-            //     }
-            // }
+                Model{
+                    property vector2d geoPosCm: fieldViewCpp.geoToCentimeters(QtPositioning.coordinate(-21.124493305309855, -48.991681397538315))
 
+                    x: geoPosCm.x - fieldViewCpp.fieldOrigin.x
+                    z: -geoPosCm.y + fieldViewCpp.fieldOrigin.y
 
-            // Model{
-            //     source: "#Rectangle"
-            //     scale: Qt.vector3d(100, 100, 100)
-            //     eulerRotation: Qt.vector3d(-90, 0, 0)
+                    scale: Qt.vector3d(1, 1, 1);
+                    y: 50
 
-            //     materials: [
-            //         CustomMaterial {
-            //             property real tileSize: parent.scale.x
-            //             property real checkerSize: 50
-            //             property int resolution: 3
+                    source: "#Cube"
+                    materials: PrincipledMaterial{
+                        baseColor: "black"
+                        roughness: 0.5
+                        metalness: 0
+                    }
+                }
 
-            //             property TextureInput sprayedTex: TextureInput{
-            //                 texture: Texture{
-            //                     id: teste
-            //                     data: painterService.getTileTexture(0, 0, teste)
-            //                 }
-            //             }
-
-            //             shadingMode: CustomMaterial.Unshaded
-            //             fragmentShader: "../../assets/shaders/tileFragmentShader.frag"
-            //             vertexShader: "../../assets/shaders/tileVertexShader.vert"
-            //         }
-            //     ]
-            // }
-
+            }
 
             MouseArea {
                 id: cameraMovementMouseArea
@@ -329,6 +381,7 @@ Page {
 
             Component.onCompleted: {
                 updateCameraPosition()
+                createTiles();
             }
         }
     }

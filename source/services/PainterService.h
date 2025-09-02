@@ -3,8 +3,9 @@
 
 #include "../BaseService.h"
 #include "source/BaseService.h"
-#include "source/entities/Tile.h"
+#include "source/ServicesManager.h"
 #include "source/entities/TileMap.h"
+#include "source/services/GeolocationService.h"
 #include <QColor>
 #include <QGeoCoordinate>
 #include <QImage>
@@ -35,23 +36,25 @@ public:
                                     const std::vector<QGeoCoordinate> &polygon,
                                     TileMap &tilesMap);
 
+    void rasterizeFieldOptimized(const QGeoCoordinate &worldOrigin,
+                                 const std::vector<QGeoCoordinate> &geoCoords,
+                                 TileMap &tileMap);
+
 private:
     static PainterService *instance;
 
-    QGeoCoordinate worldOrigin =
-        QGeoCoordinate(-21.12174192463783, -48.96224030991499);
-    int tileResolution = 1000;
-    float tileSize = 100;
-
     QPointF geoToWorldPixel(const QGeoCoordinate &coord,
                             const QGeoCoordinate &worldOrigin) const {
-        // Flat-earth approximation
-        double metersPerDegLat = 111320.0;
-        double metersPerDegLon =
-            111320.0 * cos(worldOrigin.latitude() * M_PI / 180.0);
 
-        double dx = (coord.longitude() - worldOrigin.longitude()) * metersPerDegLon;
-        double dy = (coord.latitude() - worldOrigin.latitude()) * metersPerDegLat;
+        GeolocationService *geolocationService = ServicesManager::getInstance()->geolocationService;
+
+        // Get position relative to world origin in centimeters
+        QVector2D relCm = geolocationService->geoToCentimeters(coord) -
+                          geolocationService->geoToCentimeters(worldOrigin);
+
+        // Convert to meters if needed
+        double dx = relCm.x() / 100.0;
+        double dy = relCm.y() / 100.0;
 
         return QPointF(dx, dy);
     }

@@ -26,12 +26,14 @@ JobsService::JobsService(QObject *parent) : BaseService{parent} {
     // currentJob = createJob(JobType::Spray, "Trabalho 1", field);
 }
 
-std::unique_ptr<BaseJob> JobsService::createJob(JobType type, const QString &name, const Field &field) {
+std::unique_ptr<BaseJob>
+JobsService::createJob(JobType type, const QString &name, const Field &field) {
     switch (type) {
     case JobType::Spray: {
         std::unique_ptr<SprayJob> sprayJob =
             std::make_unique<SprayJob>(name, field);
         sprayJob->id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        sprayJob->creationDateTime = QDateTime::currentDateTime();
         return sprayJob;
     }
     // case JobType::Planter:
@@ -66,6 +68,7 @@ bool JobsService::saveJob(BaseJob *job) {
     out << job->id;
     out << static_cast<int>(job->type());
     out << job->name;
+    out << job->creationDateTime;
     out << job->field.name;
 
     job->serialize(out);
@@ -112,6 +115,37 @@ BaseJob *JobsService::loadJob(const QString &fileName) {
 
     return job;
 }
+
+BaseJob *JobsService::loadJobById(const QString &id) {
+    QString filePath = folderPath + "/" + id + ".drs";
+
+    QFile file(filePath);
+    if (!file.exists()) {
+        qWarning() << "Job file not found for id:" << id;
+        return nullptr;
+    }
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "Cannot open file:" << filePath;
+        return nullptr;
+    }
+
+    QDataStream in(&file);
+    in.setVersion(QDataStream::Qt_6_0);
+
+    QString savedId;
+    in >> savedId;
+
+    if (savedId != id) {
+        qWarning() << "ID mismatch inside file:" << filePath
+                   << " expected:" << id << " got:" << savedId;
+        return nullptr;
+    }
+
+    // rewind the stream and reuse existing logic
+    file.seek(0);
+    return loadJob(id + ".drs");
+}
+
 
 QStringList JobsService::getAllJobIds() const {
     QStringList jobIds;
@@ -180,15 +214,15 @@ QList<BaseJob *> JobsService::getAllJobs() const {
         int jobTypeInt;
         QString name;
         QString fieldName;
+        QDateTime creationDateTime; // ✅ also read the timestamp
 
         in >> id;
         in >> jobTypeInt;
         in >> name;
+        in >> creationDateTime; // ✅ must be serialized when saving!
         in >> fieldName;
 
-        // Check if file name matches job id
-        QString fileBaseName =
-            fileInfo.completeBaseName(); // filename without extension
+        QString fileBaseName = fileInfo.completeBaseName();
         if (fileBaseName != id) {
             qWarning() << "File name does not match job id, skipping:"
                        << fileInfo.fileName();
@@ -198,10 +232,16 @@ QList<BaseJob *> JobsService::getAllJobs() const {
         Field field = FieldService::getInstance()->getFieldByName(fieldName);
         SprayJob *job = new SprayJob(name, field);
         job->id = id;
+        job->creationDateTime = creationDateTime; // ✅ set it here
 
-        job->deserialize(in); // deserialize the rest
+        job->deserialize(in);
         jobs.append(job);
     }
+
+    // ✅ Sort jobs by creationDateTime (newest first, or oldest first)
+    std::sort(jobs.begin(), jobs.end(), [](BaseJob *a, BaseJob *b) {
+        return a->creationDateTime > b->creationDateTime;
+    });
 
     return jobs;
 }

@@ -1,5 +1,6 @@
 #include "application.h"
 #include "ServicesManager.h"
+#include "source/services/PainterService.h"
 #include <QFont>
 #include <QQmlContext>
 
@@ -30,7 +31,7 @@ void Application::load() {
         []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
 
     ServicesManager *servicesManager = ServicesManager::getInstance();
-    PainterService *painterService = servicesManager->painterService;
+    PainterService *painterService = PainterService::getInstance();
     GeolocationService *geolocationService = servicesManager->geolocationService;
     JobsService *jobsService = servicesManager->jobsService;
 
