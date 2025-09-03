@@ -16,6 +16,6 @@ void BaseJob::redrawField() {
 }
 
 QQuick3DTextureData *BaseJob::getTileFieldTexture(int tileX, int tileY,
-                                                  QQuick3DObject *parent) {
-    return tiles.getTileFieldTexture(tileX, tileY, parent);
+                                                  QQuick3DObject *parent, float resolutionScale) {
+    return tiles.getTileFieldTexture(tileX, tileY, parent, resolutionScale);
 }

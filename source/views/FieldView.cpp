@@ -4,7 +4,8 @@
 #include <QQuickItem>
 #include <QTimer>
 #include <QtConcurrent/QtConcurrentRun>
-#include <qqmlcontext.h>
+#include <QQmlContext>
+#include <QtConcurrent>
 
 FieldView::FieldView(QObject *parent) : BaseView(parent) {
     JobsService *jobsService = JobsService::getInstance();
@@ -16,9 +17,20 @@ FieldView::FieldView(QObject *parent) : BaseView(parent) {
     // ServicesManager::getInstance()->geolocationService->SetSpeed(50);
     // ServicesManager::getInstance()->geolocationService->SetRotationSpeed(1);
 
-    jobsService->getCurrentJob()->redrawField();
 
-    qDebug() << geolocationService->centimetersToGeo(QVector2D(1000, 1000));
+
+    auto job = jobsService->getCurrentJob();
+
+    QFuture<void> future = QtConcurrent::run([job]() {
+        job->redrawField();
+    });
+
+    // connect to callback when finished
+    auto watcher = new QFutureWatcher<void>(this);
+    connect(watcher, &QFutureWatcher<void>::finished, this, [this]() {
+        emit fieldReady();   // custom signal to QML
+    });
+    watcher->setFuture(future);
 }
 
 FieldView::~FieldView(){
@@ -26,10 +38,10 @@ FieldView::~FieldView(){
 }
 
 QQuick3DTextureData *FieldView::getTileFieldTexture(int tileX, int tileY,
-                                                    QQuick3DObject *parent) {
+                                                    QQuick3DObject *parent, float resolutionScale) {
     JobsService *jobsService = JobsService::getInstance();
     BaseJob *currentJob = jobsService->getCurrentJob();
-    return currentJob->getTileFieldTexture(tileX, tileY, parent);
+    return currentJob->getTileFieldTexture(tileX, tileY, parent, resolutionScale);
 }
 
 QVector2D FieldView::coordinateInCentimeters(){

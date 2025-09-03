@@ -22,10 +22,13 @@ Page {
 
     FieldView{
         id: fieldViewCpp
+        onFieldReady: {
+            updateTiles(true);
+        }
     }
 
-    property int tileCountX: 10
-    property int tileCountY: 10
+    property int tileCountX: 20
+    property int tileCountY: 20
     property real tileSize: fieldViewCpp.tileSize * 100 // multiply by 100 to get in centimeters
 
     property real targetYaw: 0
@@ -92,11 +95,24 @@ Page {
             t.z = -logicalY * tileSize - tileSize / 2;
 
             if (force || t.logicalX !== logicalX || t.logicalY !== logicalY) {
+
                 t.logicalX = logicalX;
                 t.logicalY = logicalY;
 
+                let dx = t.tileXIndex;
+                let dy = t.tileYIndex;
+                let distanceFromCenter = Math.sqrt(dx * dx + dy * dy);
+
+                if (distanceFromCenter > 2)
+                    t.resolutionScale = 0.1;
+                else
+                    t.resolutionScale = 1
+
+
                 t.materials[0].fieldTex.texture.textureData =
-                    fieldViewCpp.getTileFieldTexture(logicalX, logicalY, t.materials[0].fieldTex.texture);
+                        fieldViewCpp.getTileFieldTexture(logicalX, logicalY, t.materials[0].fieldTex.texture, t.resolutionScale);
+
+                t.materials[0].hasFieldTexture = t.materials[0].fieldTex.texture.textureData !== null;
             }
         }
     }
@@ -150,10 +166,10 @@ Page {
                         // console.log("Key down:", event.key)
                         if (event.key === Qt.Key_W) {
                             // Move forward
-                            fieldViewCpp.setSpeed(5)
+                            fieldViewCpp.setSpeed(50)
                         } else if (event.key === Qt.Key_S) {
                             // Move backward / reverse
-                            fieldViewCpp.setSpeed(-5)
+                            fieldViewCpp.setSpeed(-50)
                         } else if (event.key === Qt.Key_A) {
                             // Rotate left
                             fieldViewCpp.setRotationSpeed(-30.0)
@@ -184,6 +200,8 @@ Page {
             property int logicalX: 0
             property int logicalY: 0
 
+            property real resolutionScale: 0.1
+
             source: "#Rectangle"
             scale: Qt.vector3d(tileSize / 100, tileSize / 100, tileSize / 100)
             eulerRotation: Qt.vector3d(-90, 0, 0)
@@ -192,7 +210,8 @@ Page {
                 CustomMaterial {
                     property real tileSize: parent.scale.x
                     property real checkerSize: 10
-                    property int resolution: 1000
+                    property real resolution: 1000 * tileModel.resolutionScale
+                    property bool hasFieldTexture: fieldTexture.textureData !== null
 
                     // property TextureInput sprayedTex: TextureInput{
                     //     texture: Texture{
@@ -204,7 +223,9 @@ Page {
                     property TextureInput fieldTex: TextureInput {
                         texture: Texture {
                             id: fieldTexture
-                            textureData: fieldViewCpp.getTileFieldTexture(tileXIndex, tileYIndex, fieldTexture)
+                            textureData: {
+                                return fieldViewCpp.getTileFieldTexture(tileXIndex, tileYIndex, fieldTexture, tileModel.resolutionScale)
+                            }
                         }
                     }
 

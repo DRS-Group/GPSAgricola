@@ -101,5 +101,5 @@ void GeolocationService::UpdatePosition() {
         vehicleData.coordinate = centimetersToGeo(posCm);
     }
 
-    qDebug() << "lon: " << vehicleData.coordinate.longitude() << " | lat: " << vehicleData.coordinate.latitude();
+    // qDebug() << "lon: " << vehicleData.coordinate.longitude() << " | lat: " << vehicleData.coordinate.latitude();
 }

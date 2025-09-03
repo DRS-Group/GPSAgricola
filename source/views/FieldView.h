@@ -18,7 +18,7 @@ public:
     void onQmlReady() override {}
 
     Q_INVOKABLE QQuick3DTextureData *getTileFieldTexture(int tileX, int tileY,
-                                                         QQuick3DObject *parent);
+                                                         QQuick3DObject *parent, float resolutionScale);
 
     Q_INVOKABLE QVector2D coordinateInCentimeters();
 
@@ -46,6 +46,7 @@ public:
 
 signals:
     void fieldOriginChanged();
+    void fieldReady();
 
 private:
     QVector2D m_fieldOrigin = QVector2D(0, 0);

@@ -175,56 +175,74 @@ void PainterService::rasterizeField(const QGeoCoordinate &worldOrigin,
 }
 
 void PainterService::rasterizeFieldOptimized(
-    const QGeoCoordinate &worldOrigin, const std::vector<QGeoCoordinate> &geoCoords,
-    TileMap &tileMap) {
-    if (geoCoords.size() < 3)
-        return;
+    const QGeoCoordinate &worldOrigin,
+    const std::vector<QGeoCoordinate> &geoCoords,
+    TileMap &tileMap)
+{
+    if (geoCoords.size() < 3) return;
 
-    // Convert polygon to world coordinates
+    // 1️⃣ Convert polygon to world coordinates
     QPolygonF worldPolygon;
     for (const auto &coord : geoCoords)
         worldPolygon << geoToWorldPixel(coord, worldOrigin);
 
+    // 2️⃣ Determine bounding tiles
     QRectF bbox = worldPolygon.boundingRect();
     int minTileX = static_cast<int>(std::floor(bbox.left() / tileMap.tileSize));
     int maxTileX = static_cast<int>(std::floor(bbox.right() / tileMap.tileSize));
     int minTileY = static_cast<int>(std::floor(bbox.top() / tileMap.tileSize));
     int maxTileY = static_cast<int>(std::floor(bbox.bottom() / tileMap.tileSize));
 
+    // 3️⃣ Rasterize per tile
     for (int tx = minTileX; tx <= maxTileX; ++tx) {
         for (int ty = minTileY; ty <= maxTileY; ++ty) {
-            Tile &tile = tileMap.getTile(tx, ty);
+            QRectF tileRect(tx * tileMap.tileSize,
+                            ty * tileMap.tileSize,
+                            tileMap.tileSize,
+                            tileMap.tileSize);
+            if (!tileRect.intersects(bbox))
+                continue;
 
-            // Map polygon to tile-local pixel coordinates
-            QPolygonF localPolygon;
+            Tile &tile = tileMap.getTile(tx, ty);
+            tile.ensureFieldPixels();
+
+            // 3a️⃣ Convert world polygon to tile-local pixel coordinates (integer)
+            QList<QPointF> localPolygon;
             for (const QPointF &wp : worldPolygon) {
-                double lx = (wp.x() - tx * tileMap.tileSize) / tileMap.tileSize *
-                            tile.resolution;
-                double ly = (wp.y() - ty * tileMap.tileSize) / tileMap.tileSize *
-                            tile.resolution;
+                double fx = (wp.x() - tx * tileMap.tileSize) / tileMap.tileSize;
+                double fy = (wp.y() - ty * tileMap.tileSize) / tileMap.tileSize;
+
+                int lx = static_cast<int>(fx * tile.resolution + 0.5);
+                int ly = static_cast<int>(fy * tile.resolution + 0.5);
                 localPolygon << QPointF(lx, ly);
             }
+            QPolygonF polygon(localPolygon);
 
-            // Temporary image buffer (1 byte per pixel)
-            QImage tmp(tile.resolution, tile.resolution, QImage::Format_Grayscale8);
-            tmp.fill(0);
+            // 3b️⃣ Compute tile-local bounding box in pixels
+            int minX = tile.resolution - 1, maxX = 0, minY = tile.resolution - 1, maxY = 0;
+            for (const QPointF &p : localPolygon) {
+                minX = std::min(minX, static_cast<int>(p.x()));
+                maxX = std::max(maxX, static_cast<int>(p.x()));
+                minY = std::min(minY, static_cast<int>(p.y()));
+                maxY = std::max(maxY, static_cast<int>(p.y()));
+            }
+            minX = std::max(0, minX);
+            maxX = std::min(tile.resolution - 1, maxX);
+            minY = std::max(0, minY);
+            maxY = std::min(tile.resolution - 1, maxY);
 
-            QPainter painter(&tmp);
-            painter.setPen(Qt::NoPen);
-            painter.setBrush(Qt::white); // white = inside field
-            painter.drawPolygon(localPolygon);
-            painter.end();
-
-            // Copy into bit-packed fieldPixels
-            for (int y = 0; y < tile.resolution; ++y) {
-                for (int x = 0; x < tile.resolution; ++x) {
-                    if (tmp.pixelColor(x, y).value() > 0) {
+            // 3c️⃣ Rasterize polygon directly into tile bitmask
+            for (int y = minY; y <= maxY; ++y) {
+                for (int x = minX; x <= maxX; ++x) {
+                    if (polygon.containsPoint(QPointF(x, y), Qt::OddEvenFill)) {
                         setFieldPixel(tile, x, y, true);
                     }
                 }
             }
 
-            tile.dirty = true;
+            tile.fieldResolutionScale = 0;
         }
     }
 }
+
+
