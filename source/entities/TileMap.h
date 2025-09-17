@@ -4,6 +4,7 @@
 #include "Tile.h"
 #include <QSize>
 #include <cmath>
+#include <shared_mutex>
 #include <unordered_map>
 #include <utility>
 
@@ -17,7 +18,9 @@ struct TileMap {
     TileMap() {}
 
     Tile &getTile(int tileX, int tileY) {
+        std::lock_guard<std::mutex> lock(mtx); // exclusive lock
         std::pair<int, int> id(tileX, tileY);
+
         auto it = tiles.find(id);
         if (it == tiles.end()) {
             auto [insertIt, _] = tiles.emplace(id, Tile(tileSize, tileResolution));
@@ -158,8 +161,9 @@ struct TileMap {
     }
 
     std::unordered_map<std::pair<int, int>, Tile, TileIDHash> tiles;
-    float tileSize = 10;       // tileSize in meters
-    int tileResolution = 1000; // how many pixels are there in each row
+    mutable std::mutex mtx;
+    float tileSize = 50;       // tileSize in meters
+    int tileResolution = 5000; // how many pixels are there in each row
 };
 
 #endif // TILEMAP_H

@@ -27,8 +27,8 @@ Page {
         }
     }
 
-    property int tileCountX: 20
-    property int tileCountY: 20
+    property int tileCountX: 10
+    property int tileCountY: 10
     property real tileSize: fieldViewCpp.tileSize * 100 // multiply by 100 to get in centimeters
 
     property real targetYaw: 0
@@ -91,6 +91,8 @@ Page {
             let logicalX = t.tileXIndex + logicalOriginX;
             let logicalY = t.tileYIndex + logicalOriginY;
 
+            t.materials[0].tileWorldOrigin = mapToGlobal(t.position);
+
             t.x = logicalX * tileSize + tileSize / 2;
             t.z = -logicalY * tileSize - tileSize / 2;
 
@@ -103,16 +105,15 @@ Page {
                 let dy = t.tileYIndex;
                 let distanceFromCenter = Math.sqrt(dx * dx + dy * dy);
 
-                if (distanceFromCenter > 2)
-                    t.resolutionScale = 0.1;
+                if (distanceFromCenter >= 2)
+                    t.resolutionScale = 0.02;
                 else
-                    t.resolutionScale = 1
+                    t.resolutionScale = 0.5;
 
 
                 t.materials[0].fieldTex.texture.textureData =
                         fieldViewCpp.getTileFieldTexture(logicalX, logicalY, t.materials[0].fieldTex.texture, t.resolutionScale);
 
-                t.materials[0].hasFieldTexture = t.materials[0].fieldTex.texture.textureData !== null;
             }
         }
     }
@@ -209,9 +210,9 @@ Page {
             materials: [
                 CustomMaterial {
                     property real tileSize: parent.scale.x
-                    property real checkerSize: 10
-                    property real resolution: 1000 * tileModel.resolutionScale
-                    property bool hasFieldTexture: fieldTexture.textureData !== null
+                    property real checkerSize: 25
+                    property real resolution: tileSize * 100 * tileModel.resolutionScale
+                    property vector2d tileWorldOrigin: mapToGlobal(tileModel);
 
                     // property TextureInput sprayedTex: TextureInput{
                     //     texture: Texture{
@@ -226,6 +227,10 @@ Page {
                             textureData: {
                                 return fieldViewCpp.getTileFieldTexture(tileXIndex, tileYIndex, fieldTexture, tileModel.resolutionScale)
                             }
+
+                            magFilter: Texture.Linear
+                            minFilter: Texture.Linear
+                            mipFilter: Texture.Linear
                         }
                     }
 

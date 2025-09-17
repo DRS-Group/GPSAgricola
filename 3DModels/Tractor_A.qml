@@ -4,7 +4,7 @@ import QtQuick3D
 Node {
     id: node0
 
-    scale: Qt.vector3d(20, 20, 20)
+    scale: Qt.vector3d(100, 100, 100)
 
     // Resources
 

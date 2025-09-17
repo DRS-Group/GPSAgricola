@@ -95,6 +95,7 @@ target_link_libraries(appGPSAgricola
     Qt6::Core
     Qt6::Quick3D
     Qt6::Positioning
+    Qt6::Concurrent
 )
 
 include(GNUInstallDirs)
