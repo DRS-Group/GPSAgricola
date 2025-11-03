@@ -18,6 +18,7 @@ public:
     static FieldService* getInstance();
 
     std::vector<QGeoCoordinate> loadFromGeoJSON(const QString &filePath) const;
+    std::vector<std::vector<QGeoCoordinate>> loadManyFromGeoJSON(const QString &filePath) const;
 
     // Check if point is inside a given polygon
     static bool contains(const std::vector<QGeoCoordinate>& polygon,
@@ -30,6 +31,17 @@ public:
     QImage renderFieldPolygon(const Field &field, int width, int height, int border = 0) const;
     QUrl renderFieldAsUrl(const Field &field, int width, int height,
                           int border) const;
+
+    QImage renderSpots(const std::vector<std::vector<QGeoCoordinate>>& spots,
+                       int width, int height, int border = 0) const;
+
+    QImage renderFieldWithSpots(const Field& field,
+                                const std::vector<std::vector<QGeoCoordinate>>& spots,
+                                int width, int height, int border = 0) const;
+
+    QUrl renderFieldWithSpotsAsUrl(const Field& field,
+                                   const std::vector<std::vector<QGeoCoordinate>>& spots,
+                                   int width, int height, int border = 0) const;
 
 private:
     static FieldService* instance;

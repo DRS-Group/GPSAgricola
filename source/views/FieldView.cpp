@@ -44,6 +44,14 @@ QQuick3DTextureData *FieldView::getTileFieldTexture(int tileX, int tileY,
     return currentJob->getTileFieldTexture(tileX, tileY, parent, resolutionScale);
 }
 
+QQuick3DTextureData* FieldView::getTileSpotsTexture(int tileX, int tileY,
+                                                    QQuick3DObject* parent, float resolutionScale) {
+    JobsService* jobsService = JobsService::getInstance();
+    BaseJob* currentJob = jobsService->getCurrentJob();
+    return currentJob->getTileSpotsTexture(tileX, tileY, parent, resolutionScale);
+}
+
+
 QVector2D FieldView::coordinateInCentimeters(){
     GeolocationService* geolocationService = ServicesManager::getInstance()->geolocationService;
     return geolocationService->coordinateInCentimeters();

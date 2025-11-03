@@ -19,7 +19,7 @@ Page {
     Connections {
         target: viewModel
         function onFieldNameChanged() {
-            fieldImage.source = viewModel.renderFieldAsUrl(fieldImage.width, fieldImage.height, 5)
+            fieldImage.source = viewModel.renderFieldWithSpotsAsUrl(fieldImage.width, fieldImage.height, 5)
         }
     }
 
@@ -208,6 +208,151 @@ Page {
                         }
                     }
 
+                    Rectangle {
+                        Layout.columnSpan: 2   // span across both columns
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+                        color: "#bfbfbf"
+                    }
+
+                    Text{
+                        text: "Manchas"
+                        font.bold: true
+                    }
+                    Item{
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 54
+
+                        Rectangle{
+                            id: spots
+                            border.color: "#bfbfbf"
+                            border.width: 1
+                            radius: 8
+                            anchors.fill: parent
+
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 50
+
+                            Text{
+                                text: "Spots1.geojson"
+                                anchors.centerIn: parent
+                                color: {
+                                    // if(viewModel.fieldName) return "black"
+                                    // return "#9f9f9f"
+                                    return "black"
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    spotFileDialog.open()
+                                }
+                            }
+                        }
+
+                        FileDialog {
+                            id: spotFileDialog
+                            title: "Selecione o arquivo das manchas"
+                            currentFolder: "/home"
+                            nameFilters: ["GeoJSON Files (*.geojson)"]
+                            onAccepted: {
+                                console.log("Selected file:", selectedFile)
+                                addJobView.loadSpotFromFile(selectedFile)
+                                // Call your C++ method to import the file here
+                                // e.g. field.importPolygonFromFile(file)
+                            }
+                            onRejected: {
+                                console.log("File selection canceled")
+                            }
+                        }
+
+                        MultiEffect {
+                            anchors.fill: field
+                            source: field
+                            autoPaddingEnabled: true
+                            shadowEnabled: true
+                            shadowVerticalOffset: 4
+                            shadowBlur: 1.0
+                            shadowColor: "#40000000"
+                        }
+                    }
+
+
+                    Rectangle {
+                        Layout.columnSpan: 2   // span across both columns
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+                        color: "#bfbfbf"
+                    }
+
+                    Text{
+                        text: "Produto(s)"
+                        font.bold: true
+                    }
+                    Item{
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 54 * 1.25
+
+                        Rectangle{
+                            id: products
+                            border.color: "#bfbfbf"
+                            border.width: 1
+                            radius: 8
+                            anchors.fill: parent
+
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 50
+
+                            Text{
+                                id: produtoA
+                                text: "A: Produto A"
+                                anchors.left: parent.left
+                                anchors.leftMargin: 20
+                                anchors.top: parent.top
+                                anchors.topMargin: 10
+                                color: {
+                                    // if(viewModel.fieldName) return "black"
+                                    // return "#9f9f9f"
+                                    return "black"
+                                }
+                            }
+
+                            Text{
+                                id: produtoB
+                                text: "B: Produto B"
+                                anchors.left: parent.left
+                                anchors.leftMargin: 20
+                                anchors.top: parent.top
+                                anchors.topMargin: 40
+                                color: {
+                                    // if(viewModel.fieldName) return "black"
+                                    // return "#9f9f9f"
+                                    return "black"
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    showFieldSelectorModal();
+                                }
+                            }
+                        }
+
+                        MultiEffect {
+                            anchors.fill: field
+                            source: field
+                            autoPaddingEnabled: true
+                            shadowEnabled: true
+                            shadowVerticalOffset: 4
+                            shadowBlur: 1.0
+                            shadowColor: "#40000000"
+                        }
+                    }
+
 
                     Rectangle {
                         Layout.columnSpan: 2   // span across both columns
@@ -229,7 +374,7 @@ Page {
                     width: parent.width * 0.75
                     height: width * 0.75
                     fillMode: Image.PreserveAspectFit
-                    source: viewModel.renderFieldAsUrl(width, height, 5)
+                    source: viewModel.renderFieldWithSpotsAsUrl(width, height, 5)
                     anchors.centerIn: parent
                     visible: viewModel.fieldName !== ""
                 }

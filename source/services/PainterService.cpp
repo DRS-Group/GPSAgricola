@@ -243,4 +243,85 @@ void PainterService::rasterizeFieldOptimized(
     });
 }
 
+void PainterService::rasterizeSpotsOptimized(
+    const QGeoCoordinate &worldOrigin,
+    const std::vector<std::vector<QGeoCoordinate>> &spots,
+    TileMap &tileMap)
+{
+    if (spots.empty()) return;
+
+    // First compute bounding box of all spots
+    QPolygonF allWorldPolys;
+    for (const auto &spot : spots) {
+        if (spot.size() < 3) continue;
+        for (const auto &coord : spot) {
+            allWorldPolys << geoToWorldPixel(coord, worldOrigin);
+        }
+    }
+
+    QRectF bbox = allWorldPolys.boundingRect();
+    int minTileX = static_cast<int>(std::floor(bbox.left() / tileMap.tileSize));
+    int maxTileX = static_cast<int>(std::floor(bbox.right() / tileMap.tileSize));
+    int minTileY = static_cast<int>(std::floor(bbox.top() / tileMap.tileSize));
+    int maxTileY = static_cast<int>(std::floor(bbox.bottom() / tileMap.tileSize));
+
+    QVector<QPair<int,int>> tilesToProcess;
+    for (int tx = minTileX; tx <= maxTileX; ++tx) {
+        for (int ty = minTileY; ty <= maxTileY; ++ty) {
+            QRectF tileRect(tx * tileMap.tileSize, ty * tileMap.tileSize,
+                            tileMap.tileSize, tileMap.tileSize);
+            if (tileRect.intersects(bbox))
+                tilesToProcess.append({tx, ty});
+        }
+    }
+
+    // Parallelize per tile
+    QtConcurrent::blockingMap(tilesToProcess, [&](const QPair<int,int> &coord) {
+        int tx = coord.first;
+        int ty = coord.second;
+        Tile &tile = tileMap.getTile(tx, ty);
+        tile.ensureSpotsPixels(); // analogous to ensureFieldPixels()
+
+        // Process each spot polygon
+        for (const auto &spot : spots) {
+            if (spot.size() < 3) continue;
+
+            // Convert spot polygon into local tile pixel space
+            QList<QPointF> localPolygon;
+            for (const auto &gc : spot) {
+                QPointF wp = geoToWorldPixel(gc, worldOrigin);
+                double fx = (wp.x() - tx * tileMap.tileSize) / tileMap.tileSize;
+                double fy = (wp.y() - ty * tileMap.tileSize) / tileMap.tileSize;
+                int lx = static_cast<int>(fx * tile.resolution + 0.5);
+                int ly = static_cast<int>(fy * tile.resolution + 0.5);
+                localPolygon << QPointF(lx, ly);
+            }
+            QPolygonF polygon(localPolygon);
+
+            // Bounding box for this spot polygon
+            int minX = tile.resolution - 1, maxX = 0, minY = tile.resolution - 1, maxY = 0;
+            for (const QPointF &p : localPolygon) {
+                minX = std::min(minX, static_cast<int>(p.x()));
+                maxX = std::max(maxX, static_cast<int>(p.x()));
+                minY = std::min(minY, static_cast<int>(p.y()));
+                maxY = std::max(maxY, static_cast<int>(p.y()));
+            }
+            minX = std::max(0, minX);
+            maxX = std::min(tile.resolution - 1, maxX);
+            minY = std::max(0, minY);
+            maxY = std::min(tile.resolution - 1, maxY);
+
+            // Rasterize this spot polygon
+            for (int y = minY; y <= maxY; ++y) {
+                for (int x = minX; x <= maxX; ++x) {
+                    if (polygon.containsPoint(QPointF(x, y), Qt::OddEvenFill)) {
+                        setSpotPixel(tile, x, y, true); // mark as spot
+                    }
+                }
+            }
+        }
+
+        tile.fieldResolutionScale = 0; // same idea as fieldResolutionScale
+    });
+}
 

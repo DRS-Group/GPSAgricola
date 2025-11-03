@@ -5,8 +5,10 @@ import QtQuick.Window
 import QtQuick3D
 import QtQuick3D.Helpers
 import QtPositioning
+import QtQuick.Effects
 import "../../3DModels"
 import "../../assets/shaders"
+import "../components"
 
 
 Page {
@@ -105,14 +107,17 @@ Page {
                 let dy = t.tileYIndex;
                 let distanceFromCenter = Math.sqrt(dx * dx + dy * dy);
 
-                if (distanceFromCenter >= 2)
-                    t.resolutionScale = 0.02;
-                else
-                    t.resolutionScale = 0.5;
+                // if (distanceFromCenter >= 2)
+                //     t.resolutionScale = 0.02;
+                // else
+                //     t.resolutionScale = 0.5;
 
 
                 t.materials[0].fieldTex.texture.textureData =
                         fieldViewCpp.getTileFieldTexture(logicalX, logicalY, t.materials[0].fieldTex.texture, t.resolutionScale);
+
+
+                t.materials[0].spotsTex.texture.textureData = fieldViewCpp.getTileSpotsTexture(logicalX, logicalY, t.materials[0].fieldTex.texture, t.resolutionScale)
 
             }
         }
@@ -191,6 +196,21 @@ Page {
                          }
                      }
 
+    TopBar{
+        id: header
+        titleText: ""
+
+
+            Text {
+                color: "white"
+                text: "Trabalho 29/09/2025"
+                font.weight: 200
+                font.pixelSize: 18
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
+            }
+    }
+
     Component {
         id: tileComponent
         Model{
@@ -234,6 +254,19 @@ Page {
                         }
                     }
 
+                    property TextureInput spotsTex: TextureInput {
+                        texture: Texture {
+                            id: spotsTexture
+                            textureData: {
+                                return fieldViewCpp.getTileSpotsTexture(tileXIndex, tileYIndex, spotsTexture, tileModel.resolutionScale)
+                            }
+
+                            magFilter: Texture.Linear
+                            minFilter: Texture.Linear
+                            mipFilter: Texture.Linear
+                        }
+                    }
+
                     shadingMode: CustomMaterial.Unshaded
                     fragmentShader: "../../assets/shaders/tileFragmentShader.frag"
                     vertexShader: "../../assets/shaders/tileVertexShader.vert"
@@ -244,36 +277,36 @@ Page {
 
 
 
-    Rectangle{
-        anchors.top: parent.top
-        anchors.left: parent.left
-        width: 500
-        // height: 200
-        z: 10
+    // Rectangle{
+    //     anchors.top: parent.top
+    //     anchors.left: parent.left
+    //     width: 500
+    //     // height: 200
+    //     z: 10
 
-        Text{
-            id: txt1
-            text: "x: " + targetPosition.x + " | y: " + targetPosition.y
-            anchors.top: parent.top
-        }
-        Text{
-            id: txt2
-            text: "x: " + geolocationService.coordinateInCentimeters().x + " | y: " + geolocationService.coordinateInCentimeters().y
-            anchors.top: txt1.bottom
-        }
-        Text{
-            id: txt3
-            text: "x: " + fieldViewCpp.fieldOrigin.x + " | y: " + fieldViewCpp.fieldOrigin.y
-            anchors.top: txt2.bottom
-        }
-        Text{
-            text: {
-                const tileColumn = Math.floor(targetPosition.x / tileSize);
-                return tileColumn
-            }
-            anchors.top: txt3.bottom
-        }
-    }
+    //     Text{
+    //         id: txt1
+    //         text: "x: " + targetPosition.x + " | y: " + targetPosition.y
+    //         anchors.top: parent.top
+    //     }
+    //     Text{
+    //         id: txt2
+    //         text: "x: " + geolocationService.coordinateInCentimeters().x + " | y: " + geolocationService.coordinateInCentimeters().y
+    //         anchors.top: txt1.bottom
+    //     }
+    //     Text{
+    //         id: txt3
+    //         text: "x: " + fieldViewCpp.fieldOrigin.x + " | y: " + fieldViewCpp.fieldOrigin.y
+    //         anchors.top: txt2.bottom
+    //     }
+    //     Text{
+    //         text: {
+    //             const tileColumn = Math.floor(targetPosition.x / tileSize);
+    //             return tileColumn
+    //         }
+    //         anchors.top: txt3.bottom
+    //     }
+    // }
 
     Rectangle {
         anchors.fill: parent
@@ -331,22 +364,22 @@ Page {
                 id: dynamicScene
                 Node{ id: tiles }
 
-                Model{
-                    property vector2d geoPosCm: fieldViewCpp.geoToCentimeters(QtPositioning.coordinate(-21.124493305309855, -48.991681397538315))
+                // Model{
+                //     property vector2d geoPosCm: fieldViewCpp.geoToCentimeters(QtPositioning.coordinate(-21.124493305309855, -48.991681397538315))
 
-                    x: geoPosCm.x - fieldViewCpp.fieldOrigin.x
-                    z: -geoPosCm.y + fieldViewCpp.fieldOrigin.y
+                //     x: geoPosCm.x - fieldViewCpp.fieldOrigin.x
+                //     z: -geoPosCm.y + fieldViewCpp.fieldOrigin.y
 
-                    scale: Qt.vector3d(1, 1, 1);
-                    y: 50
+                //     scale: Qt.vector3d(1, 1, 1);
+                //     y: 50
 
-                    source: "#Cube"
-                    materials: PrincipledMaterial{
-                        baseColor: "black"
-                        roughness: 0.5
-                        metalness: 0
-                    }
-                }
+                //     source: "#Cube"
+                //     materials: PrincipledMaterial{
+                //         baseColor: "black"
+                //         roughness: 0.5
+                //         metalness: 0
+                //     }
+                // }
 
             }
 
@@ -419,6 +452,256 @@ Page {
     //     width: parent.width
     //     Layout.preferredHeight: 100
     // }
+
+    Item {
+        id: bottomBarWrapper
+        width: parent.width
+        height: 64
+        z: 1
+        anchors.bottom: parent.bottom
+
+        property int shadowSize: 5
+        property string titleText: "Título"
+
+        // TopBar Rectangle
+        Rectangle {
+            id: topBar
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: parent.height
+            color: "#466905"
+
+
+            Row {
+                anchors.fill: parent
+                anchors.margins: 8
+                spacing: 8
+
+                // Rectangle 1
+                Rectangle {
+                    width: (parent.width - 24)/4
+                    height: column1.implicitHeight
+                    color: "transparent"
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Column {
+                        id: column1
+                        spacing: 2
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Text {
+                            color: "white"
+                            text: "Latitude"
+                            font.weight: 200
+                            font.pixelSize: 18
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                        Text {
+                            color: "white"
+                            text: "21° 7′ 24.1″ S"
+                            font.weight: 600
+                            font.pixelSize: 18
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                    }
+                }
+
+                // Rectangle 2
+                Rectangle {
+                    width: (parent.width - 24)/4
+                    height: column2.implicitHeight
+                    color: "transparent"
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Column {
+                        id: column2
+                        spacing: 2
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Text {
+                            color: "white"
+                            text: "Longitude"
+                            font.weight: 200
+                            font.pixelSize: 18
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                        Text {
+                            color: "white"
+                            text: "48° 59′ 30.6″ O"
+                            font.weight: 600
+                            font.pixelSize: 18
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: (parent.width - 24)/4
+                    height: column3.implicitHeight
+                    color: "transparent"
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Column {
+                        id: column3
+                        spacing: 2
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Text {
+                            color: "white"
+                            text: "Progresso"
+                            font.weight: 200
+                            font.pixelSize: 18
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                        Text {
+                            color: "white"
+                            text: "90%"
+                            font.weight: 600
+                            font.pixelSize: 18
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: (parent.width - 24)/4
+                    height: column4.implicitHeight
+                    color: "transparent"
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Column {
+                        id: column4
+                        spacing: 2
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        Text {
+                            color: "white"
+                            text: "Hora"
+                            font.weight: 200
+                            font.pixelSize: 18
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                        Text {
+                            color: "white"
+                            text: "01:36"
+                            font.weight: 600
+                            font.pixelSize: 18
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                    }
+                }
+            }
+
+        }
+
+        // Drop shadow
+        MultiEffect {
+            anchors.fill: topBar
+            source: topBar
+            autoPaddingEnabled: true
+            shadowEnabled: true
+            shadowVerticalOffset: -bottomBarWrapper.shadowSize
+            shadowBlur: 1.0
+            shadowColor: "#80000000"
+        }
+    }
+
+    Item {
+        id: modal
+        anchors.fill: parent
+        z: 999
+        property string value;
+        property string shiftState: "normal"
+
+        signal close()
+        signal pressEnter()
+
+        // Dark background overlay
+        Rectangle {
+            id: background
+            anchors.fill: parent
+            color: "black"
+            opacity: 0.5
+
+            MouseArea {
+                anchors.fill: parent
+                propagateComposedEvents: false
+                onClicked: {
+                    modal.close();
+                }
+            }
+        }
+
+        Rectangle {
+            id: dialog
+            radius: 16
+            color: "white"
+            anchors.centerIn: parent
+            width: columnLayout.implicitWidth + 64   // optional padding
+            height: columnLayout.implicitHeight + 64 // optional padding
+            clip: true
+
+            ColumnLayout{
+                id: columnLayout
+                spacing: 24
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                // anchors.margins: 24
+
+                Text{
+                    text: "Defina qual produto foi pulverizado"
+                    font.pixelSize: 24
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    // anchors.verticalCenter: parent.verticalCenter
+                    // anchors.margins: 24
+                }
+
+                RowLayout {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.fillHeight: true
+                    spacing: 24
+
+                    Rectangle{
+                        height: 128 * 1.5
+                        width: 128 * 1.5
+                        radius: 16
+                        color: "#00aa00"
+
+                        Text{
+                            text: "Produto A"
+                            font.pixelSize: 24
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: "white"
+                        }
+                    }
+
+                    Rectangle{
+                        height: 128 * 1.5
+                        width: 128* 1.5
+                        radius: 16
+                        color: "#0055aa"
+
+                        Text{
+                            text: "Produto B"
+                            font.pixelSize: 24
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: "white"
+                        }
+                    }
+                }
+
+            }
+            MouseArea {
+                anchors.fill: parent
+                propagateComposedEvents: false
+                z: -1
+            }
+        }
+    }
 }
 
 /*##^##

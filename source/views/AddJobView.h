@@ -11,7 +11,11 @@ public:
 
     void onQmlReady() override {};
 
+    Q_INVOKABLE void loadSpotFromFile(QUrl filePath);
     Q_INVOKABLE bool saveJob(AddJobViewModel* addJobViewModel);
+
+private:
+    FieldService *fieldService;
 };
 
 #endif // ADDJOBVIEW_H

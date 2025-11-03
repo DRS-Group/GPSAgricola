@@ -20,6 +20,9 @@ public:
     Q_INVOKABLE QQuick3DTextureData *getTileFieldTexture(int tileX, int tileY,
                                                          QQuick3DObject *parent, float resolutionScale);
 
+    Q_INVOKABLE QQuick3DTextureData *getTileSpotsTexture(int tileX, int tileY,
+                                                         QQuick3DObject* parent, float resolutionScale);
+
     Q_INVOKABLE QVector2D coordinateInCentimeters();
 
     Q_INVOKABLE void setSpeed(float speed);

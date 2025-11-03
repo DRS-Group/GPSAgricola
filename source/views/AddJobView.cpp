@@ -1,7 +1,15 @@
 #include "AddJobView.h"
 #include "source/services/JobsService.h"
+#include "source/ServicesManager.h"
 
-AddJobView::AddJobView(QObject *parent) : BaseView(parent) {}
+AddJobView::AddJobView(QObject *parent) : BaseView(parent) {
+    fieldService = ServicesManager::getInstance()->fieldService;
+}
+
+void AddJobView::loadSpotFromFile(QUrl filePath){
+    std::vector<std::vector<QGeoCoordinate>> polygons = fieldService->loadManyFromGeoJSON(filePath.toLocalFile());
+    // field->setPolygon(QVector<QGeoCoordinate>(polygon.begin(), polygon.end()));
+}
 
 bool AddJobView::saveJob(AddJobViewModel *addJobViewModel) {
     qDebug() << addJobViewModel->name();

@@ -26,6 +26,8 @@ public:
     void redrawField();
     QQuick3DTextureData *getTileFieldTexture(int tileX, int tileY,
                                              QQuick3DObject *parent, float resolutionScale);
+    QQuick3DTextureData *getTileSpotsTexture(int tileX, int tileY,
+                                             QQuick3DObject* parent, float resolutionScale);
 
     TileMap tiles;
 };

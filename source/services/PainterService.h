@@ -40,6 +40,11 @@ public:
                                  const std::vector<QGeoCoordinate> &geoCoords,
                                  TileMap &tileMap);
 
+void rasterizeSpotsOptimized(
+    const QGeoCoordinate &worldOrigin,
+    const std::vector<std::vector<QGeoCoordinate>> &spots,
+        TileMap &tileMap);
+
 private:
     static PainterService *instance;
 

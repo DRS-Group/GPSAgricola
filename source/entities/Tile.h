@@ -2,6 +2,8 @@
 #define TILE_H
 
 #include <QQuick3DTextureData>
+#include <memory>
+#include <vector>
 
 struct Tile {
     Tile(float size = 100, int resolution = 1000)
@@ -22,6 +24,9 @@ struct Tile {
 
     std::unique_ptr<std::vector<uint8_t>> plantedPixels; // 0 or 1 per pixel
     QQuick3DTextureData* plantedTexture = nullptr;
+
+    std::unique_ptr<std::vector<uint8_t>> spotsPixels;   // 1 byte per pixel
+    QQuick3DTextureData* spotsTexture = nullptr;
 
     bool dirty = false;
     float fieldResolutionScale = 0;
@@ -44,23 +49,38 @@ struct Tile {
             plantedPixels = std::make_unique<std::vector<uint8_t>>(resolution * resolution, 0);
         }
     }
+
+    void ensureSpotsPixels() {
+        if (!spotsPixels) {
+            spotsPixels = std::make_unique<std::vector<uint8_t>>(resolution * resolution, 0);
+        }
+    }
 };
 
 // --- Bit access helpers for field mask ---
 inline bool getFieldPixel(const Tile& tile, int x, int y) {
     if (!tile.fieldPixels) return false;  // no field
     int index = y * tile.resolution + x;
-    // dereference the pointer to access the vector
     return ((*tile.fieldPixels)[index >> 3] >> (index & 7)) & 1;
 }
 
 inline void setFieldPixel(Tile& tile, int x, int y, bool value) {
-    tile.ensureFieldPixels();  // make sure fieldPixels exists
+    tile.ensureFieldPixels();
     int index = y * tile.resolution + x;
     if (value)
         ((*tile.fieldPixels)[index >> 3]) |= (1 << (index & 7));
     else
         ((*tile.fieldPixels)[index >> 3]) &= ~(1 << (index & 7));
 }
+
+inline void setSpotPixel(Tile& tile, int x, int y, bool value) {
+    tile.ensureSpotsPixels();
+    int index = y * tile.resolution + x;
+    if (value)
+        ((*tile.spotsPixels)[index >> 3]) |= (1 << (index & 7));
+    else
+        ((*tile.spotsPixels)[index >> 3]) &= ~(1 << (index & 7));
+}
+
 
 #endif // TILE_H

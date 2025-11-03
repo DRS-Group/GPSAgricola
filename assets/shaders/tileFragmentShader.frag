@@ -20,8 +20,13 @@ void MAIN()
     ivec2 texCoord = ivec2(pixelX, pixelY); // pixel coordinates
 
     float fieldValue = texelFetch(fieldTex, texCoord, 0).r; // 1 inside field, 0 outside
+    float spotValue = texelFetch(spotsTex, texCoord, 0).r;
 
-    if(fieldValue < 0.5) {
+    if (spotValue == 1) {
+        // Spot overrides everything -> draw red
+        color = vec3(0, 1, 0);
+    }
+    else if(fieldValue < 0.5) {
         // Use world-aligned coordinates for checker pattern
         int checkerX = int(floor(worldX / checkerSize));
         int checkerY = int(floor(worldY / checkerSize));

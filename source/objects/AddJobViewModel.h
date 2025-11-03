@@ -48,13 +48,30 @@ public:
         return service->renderFieldAsUrl(field, width, height, border).toString();
     }
 
+    Q_INVOKABLE QString renderFieldWithSpotsAsUrl(
+                                                  int width,
+                                                  int height,
+                                                  int border = 0) {
+        if(m_fieldName == ""){
+            return "";
+        }
+
+        FieldService *service = FieldService::getInstance();
+        Field field = service->getFieldByName(m_fieldName);
+
+        // Convert QVariantList → std::vector<std::vector<QGeoCoordinate>>
+        std::vector<std::vector<QGeoCoordinate>> spotPolygons = service->loadManyFromGeoJSON("/home/gustavodbp/spots/spots1.geojson");
+
+        return service->renderFieldWithSpotsAsUrl(field, spotPolygons, width, height, border).toString();
+    }
+
 signals:
     void nameChanged();
     void typeChanged();
     void fieldNameChanged();
 
 private:
-    QString m_name;
+    QString m_name = "";
     int m_type = 0; // default: JobType::Spray (or whatever you want)
     QString m_fieldName;
 };

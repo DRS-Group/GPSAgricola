@@ -7,6 +7,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QPainter>
+#include <qstandardpaths.h>
 
 FieldService *FieldService::instance = nullptr;
 
@@ -65,6 +66,80 @@ FieldService::loadFromGeoJSON(const QString &filePath) const {
 
     return polygon;
 }
+
+std::vector<std::vector<QGeoCoordinate>>
+FieldService::loadManyFromGeoJSON(const QString &filePath) const {
+    std::vector<std::vector<QGeoCoordinate>> polygons;
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "Failed to open GeoJSON file:" << filePath;
+        return polygons;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    if (!doc.isObject())
+        return polygons;
+
+    QJsonObject root = doc.object();
+    if (!root.contains("type") || root["type"].toString() != "FeatureCollection")
+        return polygons;
+
+    QJsonArray features = root["features"].toArray();
+    if (features.isEmpty())
+        return polygons;
+
+    for (const auto &featureVal : features) {
+        QJsonObject feature = featureVal.toObject();
+        if (!feature.contains("geometry"))
+            continue;
+
+        QJsonObject geometry = feature["geometry"].toObject();
+        QString type = geometry["type"].toString();
+
+        if (type == "Polygon") {
+            // GeoJSON polygon: coordinates = array of linear rings
+            QJsonArray rings = geometry["coordinates"].toArray();
+            for (const auto &ringVal : rings) {
+                std::vector<QGeoCoordinate> ring;
+                QJsonArray ringCoords = ringVal.toArray();
+                for (const auto &ptVal : ringCoords) {
+                    QJsonArray pt = ptVal.toArray();
+                    if (pt.size() >= 2) {
+                        double lon = pt[0].toDouble();
+                        double lat = pt[1].toDouble();
+                        ring.emplace_back(lat, lon);
+                    }
+                }
+                if (!ring.empty())
+                    polygons.push_back(std::move(ring));
+            }
+        } else if (type == "MultiPolygon") {
+            // GeoJSON multipolygon: array of polygons, each = array of rings
+            QJsonArray multi = geometry["coordinates"].toArray();
+            for (const auto &polyVal : multi) {
+                QJsonArray rings = polyVal.toArray();
+                for (const auto &ringVal : rings) {
+                    std::vector<QGeoCoordinate> ring;
+                    QJsonArray ringCoords = ringVal.toArray();
+                    for (const auto &ptVal : ringCoords) {
+                        QJsonArray pt = ptVal.toArray();
+                        if (pt.size() >= 2) {
+                            double lon = pt[0].toDouble();
+                            double lat = pt[1].toDouble();
+                            ring.emplace_back(lat, lon);
+                        }
+                    }
+                    if (!ring.empty())
+                        polygons.push_back(std::move(ring));
+                }
+            }
+        }
+    }
+
+    return polygons;
+}
+
 
 // Ray-casting algorithm for point-in-polygon
 bool FieldService::contains(const std::vector<QGeoCoordinate> &polygon,
@@ -261,6 +336,125 @@ QImage FieldService::renderFieldPolygon(const Field &field, int width,
     return image;
 }
 
+QImage FieldService::renderSpots(const std::vector<std::vector<QGeoCoordinate>> &spots,
+                                 int width, int height, int border) const {
+    QImage image(width, height, QImage::Format_ARGB32);
+    image.fill(Qt::transparent);
+
+    if (spots.empty())
+        return image;
+
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    QPen pen(Qt::red, border > 0 ? border : 2, Qt::SolidLine, Qt::RoundCap);
+    QBrush brush(QColor(255, 0, 0, 128)); // semi-transparent red
+    painter.setPen(pen);
+    painter.setBrush(brush);
+
+    // compute bounding box across all spots
+    double minLat = spots[0][0].latitude();
+    double maxLat = spots[0][0].latitude();
+    double minLon = spots[0][0].longitude();
+    double maxLon = spots[0][0].longitude();
+
+    for (const auto &ring : spots) {
+        for (const auto &p : ring) {
+            minLat = qMin(minLat, p.latitude());
+            maxLat = qMax(maxLat, p.latitude());
+            minLon = qMin(minLon, p.longitude());
+            maxLon = qMax(maxLon, p.longitude());
+        }
+    }
+
+    double usableWidth = width - border;
+    double usableHeight = height - border;
+    double lonRange = maxLon - minLon;
+    double latRange = maxLat - minLat;
+    double scaleX = usableWidth / lonRange;
+    double scaleY = usableHeight / latRange;
+    double scale = qMin(scaleX, scaleY);
+
+    double xOffset = (usableWidth - lonRange * scale) / 2.0 + border / 2.0;
+    double yOffset = (usableHeight - latRange * scale) / 2.0 + border / 2.0;
+
+    auto mapToImage = [&](const QGeoCoordinate &c) {
+        double x = (c.longitude() - minLon) * scale + xOffset;
+        double y = (maxLat - c.latitude()) * scale + yOffset;
+        return QPointF(x, y);
+    };
+
+    for (const auto &ring : spots) {
+        if (ring.size() < 3) continue;
+        QPolygonF poly;
+        for (const auto &c : ring)
+            poly << mapToImage(c);
+        painter.drawPolygon(poly);
+    }
+
+    return image;
+}
+
+QImage FieldService::renderFieldWithSpots(const Field &field,
+                                          const std::vector<std::vector<QGeoCoordinate>> &spots,
+                                          int width, int height, int border) const {
+    // First draw the field
+    QImage image = renderFieldPolygon(field, width, height, border);
+
+    if (spots.empty())
+        return image;
+
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    QPen pen(Qt::red, 1, Qt::SolidLine, Qt::RoundCap);
+    QBrush brush(QColor(255, 0, 0, 128));
+    painter.setPen(pen);
+    painter.setBrush(brush);
+
+    // compute bounding box of the field to reuse mapping
+    double minLat = field.polygon[0].latitude();
+    double maxLat = field.polygon[0].latitude();
+    double minLon = field.polygon[0].longitude();
+    double maxLon = field.polygon[0].longitude();
+
+    for (const auto &p : field.polygon) {
+        minLat = qMin(minLat, p.latitude());
+        maxLat = qMax(maxLat, p.latitude());
+        minLon = qMin(minLon, p.longitude());
+        maxLon = qMax(maxLon, p.longitude());
+    }
+
+    double usableWidth = width - border;
+    double usableHeight = height - border;
+    double lonRange = maxLon - minLon;
+    double latRange = maxLat - minLat;
+    double scaleX = usableWidth / lonRange;
+    double scaleY = usableHeight / latRange;
+    double scale = qMin(scaleX, scaleY);
+
+    double xOffset = (usableWidth - lonRange * scale) / 2.0 + border / 2.0;
+    double yOffset = (usableHeight - latRange * scale) / 2.0 + border / 2.0;
+
+    auto mapToImage = [&](const QGeoCoordinate &c) {
+        double x = (c.longitude() - minLon) * scale + xOffset;
+        double y = (maxLat - c.latitude()) * scale + yOffset;
+        return QPointF(x, y);
+    };
+
+    // Draw each spot polygon
+    for (const auto &ring : spots) {
+        if (ring.size() < 3) continue;
+        QPolygonF poly;
+        for (const auto &c : ring)
+            poly << mapToImage(c);
+        painter.drawPolygon(poly);
+    }
+
+    return image;
+}
+
+
 QUrl FieldService::renderFieldAsUrl(const Field &field, int width, int height,
                                     int border) const {
     QImage img = renderFieldPolygon(field, width, height, border);
@@ -273,4 +467,30 @@ QUrl FieldService::renderFieldAsUrl(const Field &field, int width, int height,
     return QString("data:image/png;base64,") + base64;
 
     return QString();
+}
+
+QUrl FieldService::renderFieldWithSpotsAsUrl(const Field& field,
+                                             const std::vector<std::vector<QGeoCoordinate>>& spots,
+                                             int width,
+                                             int height,
+                                             int border) const
+{
+    // Render combined field + spots
+    QImage img = renderFieldWithSpots(field, spots, width, height, border);
+
+    // Save into a temporary writable location
+    QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    if (tempDir.isEmpty()) {
+        tempDir = QDir::tempPath();
+    }
+
+    QDir dir(tempDir);
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+
+    QString tempFilePath = dir.filePath("field_with_spots.png");
+    img.save(tempFilePath, "PNG");
+
+    return QUrl::fromLocalFile(tempFilePath);
 }

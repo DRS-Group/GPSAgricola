@@ -47,9 +47,9 @@ Item {
             Text {
                 text: {
                     let strJobType;
-                    if(jobType === 0) strJobType="Catação";
+                    if(jobType === 2) strJobType="Catação";
                     if(jobType === 0) strJobType="Pulverização";
-                    if(jobType === 0) strJobType="Plantação";
+                    if(jobType === 1) strJobType="Plantação";
                     return "Tipo: " + strJobType;
                 }
             }
