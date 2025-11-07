@@ -8,9 +8,9 @@
 #include <QtConcurrent>
 
 FieldView::FieldView(QObject *parent) : BaseView(parent) {
-    JobsService *jobsService = JobsService::getInstance();
-    GeolocationService* geolocationService = ServicesManager::getInstance()->geolocationService;
-    setFieldOrigin(geolocationService->geoToCentimeters(jobsService->getCurrentJob()->field.origin));
+    // JobsService *jobsService = JobsService::getInstance();
+    // GeolocationService* geolocationService = ServicesManager::getInstance()->geolocationService;
+    // setFieldOrigin(geolocationService->geoToCentimeters(jobsService->getCurrentJob()->field.origin));
 
     // Application::getInstance()->getEngine()->rootContext()->setContextProperty("fieldViewCpp", this);
 
@@ -19,38 +19,23 @@ FieldView::FieldView(QObject *parent) : BaseView(parent) {
 
 
 
-    auto job = jobsService->getCurrentJob();
+    // auto job = jobsService->getCurrentJob();
 
-    QFuture<void> future = QtConcurrent::run([job]() {
-        job->redrawField();
-    });
+    // QFuture<void> future = QtConcurrent::run([job]() {
+    //     job->redrawField();
+    // });
 
-    // connect to callback when finished
-    auto watcher = new QFutureWatcher<void>(this);
-    connect(watcher, &QFutureWatcher<void>::finished, this, [this]() {
-        emit fieldReady();   // custom signal to QML
-    });
-    watcher->setFuture(future);
+    // // connect to callback when finished
+    // auto watcher = new QFutureWatcher<void>(this);
+    // connect(watcher, &QFutureWatcher<void>::finished, this, [this]() {
+    //     emit fieldReady();   // custom signal to QML
+    // });
+    // watcher->setFuture(future);
 }
 
 FieldView::~FieldView(){
     // Application::getInstance()->getEngine()->rootContext()->setContextProperty("fieldViewCpp", nullptr);
 }
-
-QQuick3DTextureData *FieldView::getTileFieldTexture(int tileX, int tileY,
-                                                    QQuick3DObject *parent, float resolutionScale) {
-    JobsService *jobsService = JobsService::getInstance();
-    BaseJob *currentJob = jobsService->getCurrentJob();
-    return currentJob->getTileFieldTexture(tileX, tileY, parent, resolutionScale);
-}
-
-QQuick3DTextureData* FieldView::getTileSpotsTexture(int tileX, int tileY,
-                                                    QQuick3DObject* parent, float resolutionScale) {
-    JobsService* jobsService = JobsService::getInstance();
-    BaseJob* currentJob = jobsService->getCurrentJob();
-    return currentJob->getTileSpotsTexture(tileX, tileY, parent, resolutionScale);
-}
-
 
 QVector2D FieldView::coordinateInCentimeters(){
     GeolocationService* geolocationService = ServicesManager::getInstance()->geolocationService;

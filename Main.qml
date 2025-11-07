@@ -11,7 +11,7 @@ ApplicationWindow {
 
     StackView {
         id: stackView
-        initialItem: "qml/views/HomeView.qml"
+        initialItem: "qml/views/FieldView.qml"
         anchors.fill: parent
 
         onCurrentItemChanged: {

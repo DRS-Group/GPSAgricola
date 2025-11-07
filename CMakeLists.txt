@@ -76,6 +76,8 @@ qt_add_qml_module(appGPSAgricola
         QML_FILES
         QML_FILES qml/views/addJob/components/FieldSelectorModal.qml
         SOURCES qml/views/addJob/components/FieldSelectorModal.h qml/views/addJob/components/FieldSelectorModal.cpp
+        SOURCES
+        SOURCES source/SprayGeometry.h source/SprayGeometry.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

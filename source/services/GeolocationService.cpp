@@ -32,8 +32,8 @@ GeolocationService::centimetersToGeo(const QVector2D &vec) const {
 
 GeolocationService::GeolocationService() {
     // vehicleData.coordinate = QGeoCoordinate(-21.1245, -48.9917);
-    vehicleData.coordinate = QGeoCoordinate( -21.124493305309855,
-                                            -48.991681397538315);
+    vehicleData.coordinate = QGeoCoordinate( 0,
+                                            0);
     vehicleData.rotation = QVector3D(0.0, 0.0, 0.0); // yaw = Z axis
     vehicleData.speed = 0;
     rotationSpeed = 0;

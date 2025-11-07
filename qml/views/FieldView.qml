@@ -9,29 +9,22 @@ import QtQuick.Effects
 import "../../3DModels"
 import "../../assets/shaders"
 import "../components"
-
+import GPSAgricola 1.0
 
 Page {
     id: fieldViewPage
     objectName: "FieldView"
     title: "FieldView"
 
-    focus: true              // allows the page to receive key events
-    Keys.enabled: true       // enable Keys handler
+    focus: true // allows the page to receive key events
+    Keys.enabled: true // enable Keys handler
     Component.onCompleted: {
-        forceActiveFocus()   // ensures the Page actually has focus
+        forceActiveFocus() // ensures the Page actually has focus
     }
 
-    FieldView{
+    FieldView {
         id: fieldViewCpp
-        onFieldReady: {
-            updateTiles(true);
-        }
     }
-
-    property int tileCountX: 10
-    property int tileCountY: 10
-    property real tileSize: fieldViewCpp.tileSize * 100 // multiply by 100 to get in centimeters
 
     property real targetYaw: 0
     property real targetPitch: 25
@@ -40,27 +33,30 @@ Page {
     property real cameraPitch: 25
     property real cameraRadius: 2000
 
-    property vector2d targetPosition: getTargetPosition();
-    property vector2d position: getTargetPosition();
+    property vector2d targetPosition: getTargetPosition()
+    property vector2d position: getTargetPosition()
     property real targetRotation: geolocationService.eulerRotation()
     property real rotation: geolocationService.eulerRotation()
 
     function getTargetPosition() {
         // Vehicle/world position in centimeters
-        const rawPos = fieldViewCpp.coordinateInCentimeters();
+        const rawPos = fieldViewCpp.coordinateInCentimeters()
         // Field origin in centimeters (world corner)
-        const fieldOrigin = fieldViewCpp.fieldOrigin;
+        const fieldOrigin = fieldViewCpp.fieldOrigin
 
-        let x = (rawPos.x + fieldOrigin.x);
-        let y = (rawPos.y + fieldOrigin.y);
+        let x = (rawPos.x + fieldOrigin.x)
+        let y = (rawPos.y + fieldOrigin.y)
 
         // Return as Qt.vector2d
-        return Qt.vector2d(x, y);
+        return Qt.vector2d(x, y)
     }
 
-
-    function norm360(a) { return (a % 360 + 360) % 360 }
-    function norm180(a) { return ((a + 180) % 360 + 360) % 360 - 180 }
+    function norm360(a) {
+        return (a % 360 + 360) % 360
+    }
+    function norm180(a) {
+        return ((a + 180) % 360 + 360) % 360 - 180
+    }
     function lerpAngle(a, b, t) {
         let diff = norm180(b - a)
         return norm360(a + diff * t)
@@ -69,93 +65,43 @@ Page {
         return from + (to - from) * t
     }
 
-    function createTiles() {
-        // create tiles with only indices; positioning done by updateTiles()
-        for (let x = -tileCountX; x <= tileCountX; x++) {
-            for (let y = -tileCountY; y <= tileCountY; y++) {
-                tileComponent.createObject(tiles, {
-                                               "tileXIndex": x,
-                                               "tileYIndex": y,
-                                               "logicalX": 0,
-                                               "logicalY": 0
-                                           });
-            }
-        }
-        // position them once for the current position
-        updateTiles(true);
-    }
+    Timer {
+        interval: 40
+        running: true
+        repeat: true
+        onTriggered: {
+            cameraYaw = lerpAngle(cameraYaw, targetYaw - targetRotation, 0.15)
+            cameraPitch = cameraPitch + (targetPitch - cameraPitch) * 0.15
+            cameraRadius = cameraRadius + (targetRadius - cameraRadius) * 0.15
+            updateCameraPosition()
 
-    function updateTiles(force = false) {
-        let logicalOriginX = -Math.ceil(position.x / tileSize);
-        let logicalOriginY = -Math.ceil(position.y / tileSize);
+            let lerpX = lerp(position.x, targetPosition.x, 0.15)
+            let lerpY = lerp(position.y, targetPosition.y, 0.15)
 
-        for (let t of tiles.children) {
-            let logicalX = t.tileXIndex + logicalOriginX;
-            let logicalY = t.tileYIndex + logicalOriginY;
+            position.x = lerpX
+            position.y = lerpY
+            dynamicScene.position.x = position.x
+            dynamicScene.position.z = -position.y
 
-            t.materials[0].tileWorldOrigin = mapToGlobal(t.position);
+            rotation = lerpAngle(rotation, targetRotation, 0.15)
+            vehicle.eulerRotation.y = -rotation
 
-            t.x = logicalX * tileSize + tileSize / 2;
-            t.z = -logicalY * tileSize - tileSize / 2;
-
-            if (force || t.logicalX !== logicalX || t.logicalY !== logicalY) {
-
-                t.logicalX = logicalX;
-                t.logicalY = logicalY;
-
-                let dx = t.tileXIndex;
-                let dy = t.tileYIndex;
-                let distanceFromCenter = Math.sqrt(dx * dx + dy * dy);
-
-                // if (distanceFromCenter >= 2)
-                //     t.resolutionScale = 0.02;
-                // else
-                //     t.resolutionScale = 0.5;
-
-
-                t.materials[0].fieldTex.texture.textureData =
-                        fieldViewCpp.getTileFieldTexture(logicalX, logicalY, t.materials[0].fieldTex.texture, t.resolutionScale);
-
-
-                t.materials[0].spotsTex.texture.textureData = fieldViewCpp.getTileSpotsTexture(logicalX, logicalY, t.materials[0].fieldTex.texture, t.resolutionScale)
-
-            }
+            // console.log("ok");
+            sprayGeometry.addPathPoint(position.x, position.y)
+            sprayGeometry2.addPathPoint(position.x, position.y)
+            sprayGeometry3.addPathPoint(position.x, position.y)
         }
     }
 
     Timer {
-        interval: 40; running: true; repeat: true
-        onTriggered: {
-            cameraYaw   = lerpAngle(cameraYaw, targetYaw - targetRotation, 0.15);
-            cameraPitch = cameraPitch + (targetPitch - cameraPitch) * 0.15;
-            cameraRadius= cameraRadius + (targetRadius - cameraRadius) * 0.15;
-            updateCameraPosition();
-
-            let lerpX = lerp(position.x, targetPosition.x, 0.15);
-            let lerpY = lerp(position.y, targetPosition.y, 0.15);
-
-            position.x = lerpX;
-            position.y = lerpY;
-            dynamicScene.position.x = position.x;
-            dynamicScene.position.z = -position.y;
-
-            rotation = lerpAngle(rotation, targetRotation, 0.15);
-            vehicle.eulerRotation.y = -rotation;
-
-            updateTiles();
-        }
-    }
-
-    Timer{
         interval: 200
         running: true
         repeat: true
         onTriggered: {
-            targetPosition = getTargetPosition();
-            targetRotation = geolocationService.eulerRotation();
+            targetPosition = getTargetPosition()
+            targetRotation = geolocationService.eulerRotation()
         }
     }
-
 
     function updateCameraPosition() {
         var yawRad = cameraYaw * Math.PI / 180
@@ -168,7 +114,7 @@ Page {
         sceneCamera.lookAt(center)
     }
 
-    Keys.onPressed: (event) => {
+    Keys.onPressed: event => {
                         // console.log("Key down:", event.key)
                         if (event.key === Qt.Key_W) {
                             // Move forward
@@ -185,265 +131,252 @@ Page {
                         }
                     }
 
-    Keys.onReleased: (event) => {
+    Keys.onReleased: event => {
                          // console.log("Key up:", event.key)
                          if (event.key === Qt.Key_W || event.key === Qt.Key_S) {
                              // Stop forward/backward movement
                              fieldViewCpp.setSpeed(0.0)
-                         } else if (event.key === Qt.Key_A || event.key === Qt.Key_D) {
+                         } else if (event.key === Qt.Key_A
+                                    || event.key === Qt.Key_D) {
                              // Stop rotation
                              fieldViewCpp.setRotationSpeed(0.0)
                          }
                      }
 
-    TopBar{
+    TopBar {
         id: header
         titleText: ""
 
-
-            Text {
-                color: "white"
-                text: "Trabalho 29/09/2025"
-                font.weight: 200
-                font.pixelSize: 18
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.verticalCenter
-            }
-    }
-
-    Component {
-        id: tileComponent
-        Model{
-            id: tileModel
-            property int tileXIndex
-            property int tileYIndex
-
-            property int logicalX: 0
-            property int logicalY: 0
-
-            property real resolutionScale: 0.1
-
-            source: "#Rectangle"
-            scale: Qt.vector3d(tileSize / 100, tileSize / 100, tileSize / 100)
-            eulerRotation: Qt.vector3d(-90, 0, 0)
-
-            materials: [
-                CustomMaterial {
-                    property real tileSize: parent.scale.x
-                    property real checkerSize: 25
-                    property real resolution: tileSize * 100 * tileModel.resolutionScale
-                    property vector2d tileWorldOrigin: mapToGlobal(tileModel);
-
-                    // property TextureInput sprayedTex: TextureInput{
-                    //     texture: Texture{
-                    //         id: sprayedTexture
-                    //         // textureData: painterService.getTileTexture(tileXIndex, tileYIndex, sprayedTexture)
-                    //     }
-                    // }
-
-                    property TextureInput fieldTex: TextureInput {
-                        texture: Texture {
-                            id: fieldTexture
-                            textureData: {
-                                return fieldViewCpp.getTileFieldTexture(tileXIndex, tileYIndex, fieldTexture, tileModel.resolutionScale)
-                            }
-
-                            magFilter: Texture.Linear
-                            minFilter: Texture.Linear
-                            mipFilter: Texture.Linear
-                        }
-                    }
-
-                    property TextureInput spotsTex: TextureInput {
-                        texture: Texture {
-                            id: spotsTexture
-                            textureData: {
-                                return fieldViewCpp.getTileSpotsTexture(tileXIndex, tileYIndex, spotsTexture, tileModel.resolutionScale)
-                            }
-
-                            magFilter: Texture.Linear
-                            minFilter: Texture.Linear
-                            mipFilter: Texture.Linear
-                        }
-                    }
-
-                    shadingMode: CustomMaterial.Unshaded
-                    fragmentShader: "../../assets/shaders/tileFragmentShader.frag"
-                    vertexShader: "../../assets/shaders/tileVertexShader.vert"
-                }
-            ]
+        Text {
+            color: "white"
+            text: "Trabalho 29/09/2025"
+            font.weight: 200
+            font.pixelSize: 18
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
         }
     }
 
-
-
-    // Rectangle{
-    //     anchors.top: parent.top
-    //     anchors.left: parent.left
-    //     width: 500
-    //     // height: 200
-    //     z: 10
-
-    //     Text{
-    //         id: txt1
-    //         text: "x: " + targetPosition.x + " | y: " + targetPosition.y
-    //         anchors.top: parent.top
-    //     }
-    //     Text{
-    //         id: txt2
-    //         text: "x: " + geolocationService.coordinateInCentimeters().x + " | y: " + geolocationService.coordinateInCentimeters().y
-    //         anchors.top: txt1.bottom
-    //     }
-    //     Text{
-    //         id: txt3
-    //         text: "x: " + fieldViewCpp.fieldOrigin.x + " | y: " + fieldViewCpp.fieldOrigin.y
-    //         anchors.top: txt2.bottom
-    //     }
-    //     Text{
-    //         text: {
-    //             const tileColumn = Math.floor(targetPosition.x / tileSize);
-    //             return tileColumn
-    //         }
-    //         anchors.top: txt3.bottom
-    //     }
+    // Rectangle {
+    //     anchors.fill: parent
+    //     color: "#262626"
+    //     z: -1
     // }
+    View3D {
+        id: extendedView3D
+        width: parent.width
+        height: parent.height
+        environment: ExtendedSceneEnvironment {
+            colorAdjustmentsEnabled: true
+            backgroundMode: SceneEnvironment.SkyBox
 
-    Rectangle {
-        anchors.fill: parent
-        color: "#262626"
-        z: -1
-    }
-
-    ColumnLayout{
-        anchors.fill: parent
-        spacing: 0
-
-        View3D {
-            id: extendedView3D
-            width: parent.width
-            height: parent.height
-            environment: ExtendedSceneEnvironment {
-                colorAdjustmentsEnabled: true
-                backgroundMode: SceneEnvironment.SkyBox
-
-                lightProbe: Texture{
-                    source: "qrc:/assets/day-skybox.hdr"
-                }
-            }
-
-            Node {
-                id: scene
-
-                DirectionalLight {
-                    id: directionalLight
-                    visible: true
-                    brightness: 1
-                    shadowMapQuality: Light.ShadowMapQualityUltra
-                    castsShadow: true
-                    eulerRotation: Qt.vector3d(-45, 45, 0)
-                    position: Qt.vector3d(0, 100, 100)
-                }
-
-                PerspectiveCamera {
-                    id: sceneCamera
-                    x: -0
-                    y: 100
-                    position: Qt.vector3d(0, 100, 100)
-                    fieldOfView: 80
-                    z: 689.66284
-                    clipFar: 1000000
-                }
-
-                Tractor_A {
-                    id: vehicle
-                    // visible: false
-                }
-            }
-
-            Node {
-                id: dynamicScene
-                Node{ id: tiles }
-
-                // Model{
-                //     property vector2d geoPosCm: fieldViewCpp.geoToCentimeters(QtPositioning.coordinate(-21.124493305309855, -48.991681397538315))
-
-                //     x: geoPosCm.x - fieldViewCpp.fieldOrigin.x
-                //     z: -geoPosCm.y + fieldViewCpp.fieldOrigin.y
-
-                //     scale: Qt.vector3d(1, 1, 1);
-                //     y: 50
-
-                //     source: "#Cube"
-                //     materials: PrincipledMaterial{
-                //         baseColor: "black"
-                //         roughness: 0.5
-                //         metalness: 0
-                //     }
-                // }
-
-            }
-
-            MouseArea {
-                id: cameraMovementMouseArea
-                anchors.fill: parent
-                drag.target: null
-                property real lastX: 0
-                property real lastY: 0
-
-                onPressed: (mouse)=> {
-                               lastX = mouse.x
-                               lastY = mouse.y
-                           }
-
-                onPositionChanged:(mouse) => {
-                                      var dx = mouse.x - lastX
-                                      var dy = mouse.y - lastY
-
-
-                                      var sensitivity = 0.5
-
-                                      targetYaw = norm360(targetYaw - dx * 0.5)
-                                      targetPitch = Math.min(Math.max(targetPitch + dy * sensitivity, 0), 89)
-
-                                      updateCameraPosition()
-
-                                      lastX = mouse.x
-                                      lastY = mouse.y
-                                  }
-
-                onWheel: (wheel) => {
-                             var delta = wheel.angleDelta.y / 10
-                             targetRadius = Math.min(Math.max(targetRadius - delta * 5, 100), 50000)
-                         }
-
-            }
-
-            PinchArea {
-                id: cameraMovementPinchArea
-                anchors.fill: parent
-                pinch.maximumScale: 3
-                pinch.minimumScale: 0.5
-                pinch.dragAxis: Pinch.NoDrag
-
-                property real lastScale: 1.0
-
-                onPinchUpdated: {
-                    var scaleDelta = pinch.scale / lastScale
-                    lastScale = pinch.scale
-                    targetRadius = Math.min(Math.max(targetRadius / scaleDelta, 20), 50000)
-                }
-
-                onPinchFinished: {
-                    lastScale = 1.0
-                }
-            }
-
-            Component.onCompleted: {
-                updateCameraPosition()
-                createTiles();
+            lightProbe: Texture {
+                source: "qrc:/assets/day-skybox.hdr"
             }
         }
+
+        Node {
+            id: scene
+
+            DirectionalLight {
+                id: directionalLight
+                visible: true
+                brightness: 1
+                shadowMapQuality: Light.ShadowMapQualityUltra
+                castsShadow: true
+                eulerRotation: Qt.vector3d(-45, 45, 0)
+                position: Qt.vector3d(0, 100, 100)
+            }
+
+            PerspectiveCamera {
+                id: sceneCamera
+                x: -0
+                y: 100
+                position: Qt.vector3d(0, 100, 100)
+                fieldOfView: 80
+                z: 689.66284
+                clipFar: 100000
+                clipNear: 100
+            }
+
+            Tractor_A {
+                id: vehicle
+                //     // visible: false
+            }
+        }
+
+        Node {
+            id: dynamicScene
+
+            Model {
+                eulerRotation: Qt.vector3d(90, 0, 0)
+                y: 50
+
+                scale: Qt.vector3d(1, 1, 1)
+                id: triangleModel
+                visible: true
+                geometry: SprayGeometry {
+                    id: sprayGeometry
+                    offset: 0
+                }
+                materials: [
+                    PrincipledMaterial {
+                        baseColor: "#00ff00"
+                        opacity: 0.25
+                        roughness: 1
+                    }
+                ]
+            }
+            Model {
+                eulerRotation: Qt.vector3d(90, 0, 0)
+                y: 50
+
+                scale: Qt.vector3d(1, 1, 1)
+                id: triangleModel2
+                visible: true
+                geometry: SprayGeometry {
+                    id: sprayGeometry2
+                    offset: 210
+                }
+                materials: [
+                    PrincipledMaterial {
+                        baseColor: "#00ff00"
+                        opacity: 0.25
+                        roughness: 1
+                    }
+                ]
+            }
+            Model {
+                eulerRotation: Qt.vector3d(90, 0, 0)
+                y: 50
+
+                scale: Qt.vector3d(1, 1, 1)
+                id: triangleModel3
+                visible: true
+                geometry: SprayGeometry {
+                    id: sprayGeometry3
+                    offset: -210
+                }
+                materials: [
+                    PrincipledMaterial {
+                        baseColor: "#00ff00"
+                        opacity: 0.25
+                        roughness: 1
+                    }
+                ]
+            }
+            Model {
+                id: tileModel
+
+                source: "#Rectangle"
+                scale: Qt.vector3d(100000, 100000, 100000)
+                eulerRotation: Qt.vector3d(-90, 0, 0)
+
+                materials: [
+                    CustomMaterial {
+                        property real tileSize: parent.scale.x
+                        property real checkerSize: 25
+                        property vector2d tileWorldOrigin: mapToGlobal(
+                                                               tileModel)
+
+                        shadingMode: CustomMaterial.Unshaded
+                        fragmentShader: "../../assets/shaders/tileFragmentShader.frag"
+                        vertexShader: "../../assets/shaders/tileVertexShader.vert"
+                    }
+                ]
+            }
+
+            // Model {
+            //     property vector2d geoPosCm: fieldViewCpp.geoToCentimeters(
+            //                                     QtPositioning.coordinate(
+            //                                         -21.124493305309855,
+            //                                         -48.991681397538315))
+
+            //     x: 0
+            //     z: 0
+
+            //     scale: Qt.vector3d(1, 1, 1)
+            //     y: 50
+
+            //     source: "#Cube"
+            //     materials: PrincipledMaterial {
+            //         baseColor: "black"
+            //         roughness: 0.5
+            //         metalness: 0
+            //     }
+            // }
+        }
+
+        MouseArea {
+            id: cameraMovementMouseArea
+            anchors.fill: parent
+            drag.target: null
+            property real lastX: 0
+            property real lastY: 0
+
+            onPressed: mouse => {
+                           lastX = mouse.x
+                           lastY = mouse.y
+                       }
+
+            onPositionChanged: mouse => {
+                                   var dx = mouse.x - lastX
+                                   var dy = mouse.y - lastY
+
+                                   var sensitivity = 0.5
+
+                                   targetYaw = norm360(targetYaw - dx * 0.5)
+                                   targetPitch = Math.min(
+                                       Math.max(targetPitch + dy * sensitivity,
+                                                -90), 89)
+
+                                   updateCameraPosition()
+
+                                   lastX = mouse.x
+                                   lastY = mouse.y
+                               }
+
+            onWheel: wheel => {
+                         var delta = wheel.angleDelta.y / 10
+                         targetRadius = Math.min(Math.max(
+                                                     targetRadius - delta * 5,
+                                                     100), 50000)
+                     }
+        }
+
+        PinchArea {
+            id: cameraMovementPinchArea
+            anchors.fill: parent
+            pinch.maximumScale: 3
+            pinch.minimumScale: 0.5
+            pinch.dragAxis: Pinch.NoDrag
+
+            property real lastScale: 1.0
+
+            onPinchUpdated: {
+                var scaleDelta = pinch.scale / lastScale
+                lastScale = pinch.scale
+                targetRadius = Math.min(Math.max(targetRadius / scaleDelta,
+                                                 20), 50000)
+            }
+
+            onPinchFinished: {
+                lastScale = 1.0
+            }
+        }
+
+        Component.onCompleted: {
+            updateCameraPosition()
+        }
     }
+
+    DebugView {
+        anchors.top: header.bottom
+        source: extendedView3D
+        visible: true
+        resourceDetailsVisible: true
+    }
+
     // Rectangle{
     //     id: rectMenu
     //     color: "#00ff00"
@@ -452,7 +385,6 @@ Page {
     //     width: parent.width
     //     Layout.preferredHeight: 100
     // }
-
     Item {
         id: bottomBarWrapper
         width: parent.width
@@ -472,7 +404,6 @@ Page {
             height: parent.height
             color: "#466905"
 
-
             Row {
                 anchors.fill: parent
                 anchors.margins: 8
@@ -480,7 +411,7 @@ Page {
 
                 // Rectangle 1
                 Rectangle {
-                    width: (parent.width - 24)/4
+                    width: (parent.width - 24) / 4
                     height: column1.implicitHeight
                     color: "transparent"
                     anchors.verticalCenter: parent.verticalCenter
@@ -509,7 +440,7 @@ Page {
 
                 // Rectangle 2
                 Rectangle {
-                    width: (parent.width - 24)/4
+                    width: (parent.width - 24) / 4
                     height: column2.implicitHeight
                     color: "transparent"
                     anchors.verticalCenter: parent.verticalCenter
@@ -537,7 +468,7 @@ Page {
                 }
 
                 Rectangle {
-                    width: (parent.width - 24)/4
+                    width: (parent.width - 24) / 4
                     height: column3.implicitHeight
                     color: "transparent"
                     anchors.verticalCenter: parent.verticalCenter
@@ -565,7 +496,7 @@ Page {
                 }
 
                 Rectangle {
-                    width: (parent.width - 24)/4
+                    width: (parent.width - 24) / 4
                     height: column4.implicitHeight
                     color: "transparent"
                     anchors.verticalCenter: parent.verticalCenter
@@ -592,7 +523,6 @@ Page {
                     }
                 }
             }
-
         }
 
         // Drop shadow
@@ -607,101 +537,101 @@ Page {
         }
     }
 
-    Item {
-        id: modal
-        anchors.fill: parent
-        z: 999
-        property string value;
-        property string shiftState: "normal"
+    // Item {
+    //     id: modal
+    //     anchors.fill: parent
+    //     z: 999
+    //     property string value;
+    //     property string shiftState: "normal"
 
-        signal close()
-        signal pressEnter()
+    //     signal close()
+    //     signal pressEnter()
 
-        // Dark background overlay
-        Rectangle {
-            id: background
-            anchors.fill: parent
-            color: "black"
-            opacity: 0.5
+    //     // Dark background overlay
+    //     Rectangle {
+    //         id: background
+    //         anchors.fill: parent
+    //         color: "black"
+    //         opacity: 0.5
 
-            MouseArea {
-                anchors.fill: parent
-                propagateComposedEvents: false
-                onClicked: {
-                    modal.close();
-                }
-            }
-        }
+    //         MouseArea {
+    //             anchors.fill: parent
+    //             propagateComposedEvents: false
+    //             onClicked: {
+    //                 modal.close();
+    //             }
+    //         }
+    //     }
 
-        Rectangle {
-            id: dialog
-            radius: 16
-            color: "white"
-            anchors.centerIn: parent
-            width: columnLayout.implicitWidth + 64   // optional padding
-            height: columnLayout.implicitHeight + 64 // optional padding
-            clip: true
+    //     Rectangle {
+    //         id: dialog
+    //         radius: 16
+    //         color: "white"
+    //         anchors.centerIn: parent
+    //         width: columnLayout.implicitWidth + 64   // optional padding
+    //         height: columnLayout.implicitHeight + 64 // optional padding
+    //         clip: true
 
-            ColumnLayout{
-                id: columnLayout
-                spacing: 24
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                // anchors.margins: 24
+    //         ColumnLayout{
+    //             id: columnLayout
+    //             spacing: 24
+    //             anchors.left: parent.left
+    //             anchors.right: parent.right
+    //             anchors.verticalCenter: parent.verticalCenter
+    //             // anchors.margins: 24
 
-                Text{
-                    text: "Defina qual produto foi pulverizado"
-                    font.pixelSize: 24
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    // anchors.verticalCenter: parent.verticalCenter
-                    // anchors.margins: 24
-                }
+    //             Text{
+    //                 text: "Defina qual produto foi pulverizado"
+    //                 font.pixelSize: 24
+    //                 anchors.horizontalCenter: parent.horizontalCenter
+    //                 // anchors.verticalCenter: parent.verticalCenter
+    //                 // anchors.margins: 24
+    //             }
 
-                RowLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.fillHeight: true
-                    spacing: 24
+    //             RowLayout {
+    //                 Layout.alignment: Qt.AlignHCenter
+    //                 Layout.fillHeight: true
+    //                 spacing: 24
 
-                    Rectangle{
-                        height: 128 * 1.5
-                        width: 128 * 1.5
-                        radius: 16
-                        color: "#00aa00"
+    //                 Rectangle{
+    //                     height: 128 * 1.5
+    //                     width: 128 * 1.5
+    //                     radius: 16
+    //                     color: "#00aa00"
 
-                        Text{
-                            text: "Produto A"
-                            font.pixelSize: 24
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: "white"
-                        }
-                    }
+    //                     Text{
+    //                         text: "Produto A"
+    //                         font.pixelSize: 24
+    //                         anchors.horizontalCenter: parent.horizontalCenter
+    //                         anchors.verticalCenter: parent.verticalCenter
+    //                         color: "white"
+    //                     }
+    //                 }
 
-                    Rectangle{
-                        height: 128 * 1.5
-                        width: 128* 1.5
-                        radius: 16
-                        color: "#0055aa"
+    //                 Rectangle{
+    //                     height: 128 * 1.5
+    //                     width: 128* 1.5
+    //                     radius: 16
+    //                     color: "#0055aa"
 
-                        Text{
-                            text: "Produto B"
-                            font.pixelSize: 24
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: "white"
-                        }
-                    }
-                }
+    //                     Text{
+    //                         text: "Produto B"
+    //                         font.pixelSize: 24
+    //                         anchors.horizontalCenter: parent.horizontalCenter
+    //                         anchors.verticalCenter: parent.verticalCenter
+    //                         color: "white"
+    //                     }
+    //                 }
+    //             }
 
-            }
-            MouseArea {
-                anchors.fill: parent
-                propagateComposedEvents: false
-                z: -1
-            }
-        }
-    }
+    //         }
+    //         MouseArea {
+    //             anchors.fill: parent
+    //             propagateComposedEvents: false
+    //             z: -1
+    //         }
+    //     }
+    // }
 }
 
 /*##^##
@@ -709,3 +639,4 @@ Designer {
     D{i:0}D{i:11;cameraSpeed3d:46;cameraSpeed3dMultiplier:1}
 }
 ##^##*/
+
